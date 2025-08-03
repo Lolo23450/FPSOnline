@@ -3,395 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FPS Arena - Enhanced Stage Editor & Online Play</title>
+    <title>FPS Arena - Enhanced Multiplayer</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background: linear-gradient(135deg, #0a0a0a, #1a1a2e);
-            color: #fff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            overflow: hidden;
-        }
-        
-        #gameContainer {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-        }
-        
-        #ui {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 1000;
-        }
-        
-        .ui-panel {
-            position: absolute;
-            background: linear-gradient(145deg, rgba(20, 25, 40, 0.95), rgba(10, 15, 30, 0.95));
-            border: 2px solid #00ff88;
-            border-radius: 12px;
-            padding: 20px;
-            pointer-events: auto;
-            box-shadow: 0 8px 32px rgba(0, 255, 136, 0.1);
-            backdrop-filter: blur(10px);
-        }
-        
-        #mainMenu {
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-            min-width: 350px;
-        }
-        
-        #mainMenu h1 {
-            background: linear-gradient(45deg, #00ff88, #00ccff);
-            background-clip: text;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-size: 3em;
-            margin-bottom: 30px;
-            text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
-        }
-        
-        #hud {
-            display: none;
-        }
-        
-        .hud-item {
-            position: absolute;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 8px 15px;
-            border: 1px solid #00ff88;
-            border-radius: 8px;
-            backdrop-filter: blur(5px);
-        }
-        
-        #health {
-            bottom: 20px;
-            left: 20px;
-        }
-        
-        #ammo {
-            bottom: 20px;
-            right: 20px;
-        }
-        
-        #weaponInfo {
-            bottom: 70px;
-            right: 20px;
-        }
-        
-        #crosshair {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 20px;
-            height: 20px;
-            border: 2px solid #00ff88;
-            border-radius: 50%;
-            pointer-events: none;
-            box-shadow: 0 0 10px rgba(0, 255, 136, 0.6);
-        }
-        
-        #editorPanel {
-            top: 20px;
-            left: 20px;
-            width: 320px;
-            display: none;
-            max-height: calc(100vh - 40px);
-            overflow-y: auto;
-        }
-        
-        #terrainPanel {
-            top: 20px;
-            right: 20px;
-            width: 280px;
-            display: none;
-        }
-        
-        /* Enhanced Button Styles */
-        button {
-            background: linear-gradient(145deg, #2a3f5f, #1e2a3a);
-            color: #00ff88;
-            border: 2px solid #00ff88;
-            padding: 12px 24px;
-            margin: 8px 4px;
-            cursor: pointer;
-            font-family: inherit;
-            font-weight: 600;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        button::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(0, 255, 136, 0.2), transparent);
-            transition: left 0.5s;
-        }
-        
-        button:hover::before {
-            left: 100%;
-        }
-        
-        button:hover {
-            background: linear-gradient(145deg, #00ff88, #00cc70);
-            color: #000;
-            box-shadow: 0 5px 15px rgba(0, 255, 136, 0.4);
-            transform: translateY(-2px);
-        }
-        
-        button.active {
-            background: linear-gradient(145deg, #00ff88, #00cc70);
-            color: #000;
-            box-shadow: 0 0 20px rgba(0, 255, 136, 0.6);
-        }
-        
-        /* Category Tab Buttons */
-        .category-tabs {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-        
-        .category-tab {
-            flex: 1;
-            min-width: 80px;
-            padding: 10px 16px;
-            font-size: 12px;
-            border-radius: 20px;
-            text-align: center;
-        }
-        
-        /* Color Swatches */
-        .color-swatches {
-            display: grid;
-            grid-template-columns: repeat(8, 1fr);
-            gap: 8px;
-            margin: 15px 0;
-            padding: 15px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 8px;
-        }
-        
-        .color-swatch {
-            width: 28px;
-            height: 28px;
-            border-radius: 6px;
-            cursor: pointer;
-            border: 2px solid transparent;
-            transition: all 0.2s ease;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-        }
-        
-        .color-swatch:hover {
-            transform: scale(1.1);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-        }
-        
-        .color-swatch.active {
-            border-color: #00ff88;
-            box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
-        }
-        
-        /* Enhanced Input Styles */
-        input, select {
-            background: linear-gradient(145deg, #2a3f5f, #1e2a3a);
-            color: #00ff88;
-            border: 2px solid #00ff88;
-            padding: 10px 15px;
-            margin: 8px 0;
-            font-family: inherit;
-            border-radius: 6px;
-            transition: all 0.3s ease;
-            width: 100%;
-            box-sizing: border-box;
-        }
-        
-        input:focus, select:focus {
-            outline: none;
-            box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
-            transform: translateY(-1px);
-        }
-        
-        /* Range Sliders */
-        input[type="range"] {
-            width: 100%;
-            appearance: none;
-            -webkit-appearance: none;
-            height: 6px;
-            border-radius: 3px;
-            background: #333;
-            outline: none;
-        }
-        
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: #00ff88;
-            cursor: pointer;
-            box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
-        }
-        
-        .weapon-slot {
-            display: inline-block;
-            width: 60px;
-            height: 60px;
-            border: 2px solid #666;
-            margin: 2px;
-            text-align: center;
-            line-height: 60px;
-            cursor: pointer;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-        }
-        
-        .weapon-slot.active {
-            border-color: #00ff88;
-            background: rgba(0, 255, 136, 0.2);
-            box-shadow: 0 0 15px rgba(0, 255, 136, 0.4);
-        }
-        
-        #onlinePanel {
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 300px;
-            display: none;
-        }
-        
-        #playerList {
-            max-height: 150px;
-            overflow-y: auto;
-            background: rgba(0, 0, 0, 0.5);
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 6px;
-        }
-        
-        .player-item {
-            padding: 5px 10px;
-            border-bottom: 1px solid #333;
-            border-radius: 4px;
-            margin-bottom: 2px;
-        }
-        
-        /* Prop Controls */
-        .prop-controls {
-            background: rgba(0, 0, 0, 0.2);
-            padding: 15px;
-            border-radius: 8px;
-            margin: 10px 0;
-        }
-        
-        .control-group {
-            margin-bottom: 15px;
-        }
-        
-        .control-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: #00ff88;
-        }
-        
-        .rotation-controls {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-        }
-        
-        .rotation-controls button {
-            padding: 8px;
-            font-size: 12px;
-            margin: 2px;
-        }
-        
-        /* Mode Indicators */
-        .mode-indicator {
-            position: absolute;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 255, 136, 0.1);
-            border: 1px solid #00ff88;
-            padding: 8px 20px;
-            border-radius: 20px;
-            font-weight: 600;
-            backdrop-filter: blur(5px);
-        }
-        
-        /* Selection Highlight */
-        .selection-outline {
-            position: absolute;
-            border: 2px solid #ffff00;
-            background: rgba(255, 255, 0, 0.1);
-            pointer-events: none;
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0% { opacity: 0.5; }
-            50% { opacity: 1; }
-            100% { opacity: 0.5; }
-        }
-        
-        /* Terrain Brush Preview */
-        .brush-preview {
-            position: absolute;
-            border: 2px solid rgba(0, 255, 136, 0.6);
-            border-radius: 50%;
-            pointer-events: none;
-            background: rgba(0, 255, 136, 0.1);
-        }
-        
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            #editorPanel {
-                width: calc(100vw - 40px);
-                max-width: 320px;
-            }
-            
-            .color-swatches {
-                grid-template-columns: repeat(6, 1fr);
-            }
-            
-            .category-tabs {
-                flex-direction: column;
-            }
-        }
+        body{margin:0;padding:0;background:linear-gradient(135deg,#0a0a0a,#1a1a2e);color:#fff;font-family:'Segoe UI',sans-serif;overflow:hidden}
+        #gameContainer{position:relative;width:100vw;height:100vh}
+        #ui{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1000}
+        .ui-panel{position:absolute;background:linear-gradient(145deg,rgba(20,25,40,.95),rgba(10,15,30,.95));border:2px solid #00ff88;border-radius:12px;padding:20px;pointer-events:auto;box-shadow:0 8px 32px rgba(0,255,136,.1);backdrop-filter:blur(10px)}
+        #mainMenu{top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;min-width:350px}
+        #mainMenu h1{background:linear-gradient(45deg,#00ff88,#00ccff);background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:3em;margin-bottom:30px;text-shadow:0 0 20px rgba(0,255,136,.5)}
+        #hud{display:none}
+        .hud-item{position:absolute;background:rgba(0,0,0,.8);padding:8px 15px;border:1px solid #00ff88;border-radius:8px;backdrop-filter:blur(5px)}
+        #health{bottom:20px;left:20px}
+        #ammo{bottom:20px;right:20px}
+        #weaponInfo{bottom:70px;right:20px}
+        #crosshair{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:20px;height:20px;border:2px solid #00ff88;border-radius:50%;pointer-events:none;box-shadow:0 0 10px rgba(0,255,136,.6)}
+        #editorPanel{top:20px;left:20px;width:320px;display:none;max-height:calc(100vh - 40px);overflow-y:auto}
+        #terrainPanel{top:20px;right:20px;width:280px;display:none}
+        button{background:linear-gradient(145deg,#2a3f5f,#1e2a3a);color:#00ff88;border:2px solid #00ff88;padding:12px 24px;margin:8px 4px;cursor:pointer;font-family:inherit;font-weight:600;border-radius:8px;transition:all .3s ease;position:relative;overflow:hidden}
+        button::before{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(0,255,136,.2),transparent);transition:left .5s}
+        button:hover::before{left:100%}
+        button:hover{background:linear-gradient(145deg,#00ff88,#00cc70);color:#000;box-shadow:0 5px 15px rgba(0,255,136,.4);transform:translateY(-2px)}
+        button.active{background:linear-gradient(145deg,#00ff88,#00cc70);color:#000;box-shadow:0 0 20px rgba(0,255,136,.6)}
+        .category-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+        .category-tab{flex:1;min-width:80px;padding:10px 16px;font-size:12px;border-radius:20px;text-align:center}
+        .color-swatches{display:grid;grid-template-columns:repeat(8,1fr);gap:8px;margin:15px 0;padding:15px;background:rgba(0,0,0,.3);border-radius:8px}
+        .color-swatch{width:28px;height:28px;border-radius:6px;cursor:pointer;border:2px solid transparent;transition:all .2s ease;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+        .color-swatch:hover{transform:scale(1.1);box-shadow:0 4px 12px rgba(0,0,0,.5)}
+        .color-swatch.active{border-color:#00ff88;box-shadow:0 0 10px rgba(0,255,136,.5)}
+        input,select{background:linear-gradient(145deg,#2a3f5f,#1e2a3a);color:#00ff88;border:2px solid #00ff88;padding:10px 15px;margin:8px 0;font-family:inherit;border-radius:6px;transition:all .3s ease;width:100%;box-sizing:border-box}
+        input:focus,select:focus{outline:none;box-shadow:0 0 10px rgba(0,255,136,.5);transform:translateY(-1px)}
+        input[type="range"]{width:100%;appearance:none;-webkit-appearance:none;height:6px;border-radius:3px;background:#333;outline:none}
+        input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:#00ff88;cursor:pointer;box-shadow:0 0 10px rgba(0,255,136,.5)}
+        .weapon-slot{display:inline-block;width:60px;height:60px;border:2px solid #666;margin:2px;text-align:center;line-height:60px;cursor:pointer;border-radius:8px;transition:all .3s ease}
+        .weapon-slot.active{border-color:#00ff88;background:rgba(0,255,136,.2);box-shadow:0 0 15px rgba(0,255,136,.4)}
+        #onlinePanel{top:20px;left:50%;transform:translateX(-50%);width:300px;display:none}
+        #playerList{max-height:150px;overflow-y:auto;background:rgba(0,0,0,.5);padding:10px;margin:10px 0;border-radius:6px}
+        .player-item{padding:5px 10px;border-bottom:1px solid #333;border-radius:4px;margin-bottom:2px}
+        .prop-controls{background:rgba(0,0,0,.2);padding:15px;border-radius:8px;margin:10px 0}
+        .control-group{margin-bottom:15px}
+        .control-group label{display:block;margin-bottom:5px;font-weight:600;color:#00ff88}
+        .rotation-controls{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+        .rotation-controls button{padding:8px;font-size:12px;margin:2px}
+        .mode-indicator{position:absolute;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,255,136,.1);border:1px solid #00ff88;padding:8px 20px;border-radius:20px;font-weight:600;backdrop-filter:blur(5px)}
+        @keyframes pulse{0%{opacity:.5}50%{opacity:1}100%{opacity:.5}}
+        .brush-preview{position:absolute;border:2px solid rgba(0,255,136,.6);border-radius:50%;pointer-events:none;background:rgba(0,255,136,.1)}
+        @media (max-width:768px){#editorPanel{width:calc(100vw - 40px);max-width:320px}.color-swatches{grid-template-columns:repeat(6,1fr)}.category-tabs{flex-direction:column}}
     </style>
 </head>
 <body>
     <div id="gameContainer">
         <div id="ui">
-            <!-- Main Menu -->
             <div id="mainMenu" class="ui-panel">
                 <h1>FPS ARENA</h1>
                 <button onclick="startSinglePlayer()">🎮 Single Player</button>
                 <button onclick="showOnlineMenu()">🌐 Online Play</button>
                 <button onclick="startEditor()">🛠️ Stage Editor</button>
-                <div id="onlineSetup" style="display: none; margin-top: 20px;">
+                <div id="onlineSetup" style="display:none;margin-top:20px">
                     <input type="text" id="playerName" placeholder="Player Name" value="Player1">
                     <input type="text" id="roomCode" placeholder="Room Code (optional)">
                     <button onclick="joinOnlineGame()">Join Game</button>
@@ -399,12 +69,10 @@
                 </div>
             </div>
             
-            <!-- Mode Indicator -->
-            <div id="modeIndicator" class="mode-indicator" style="display: none;">
+            <div id="modeIndicator" class="mode-indicator" style="display:none">
                 <span id="currentMode">Props Mode</span> | <span id="currentTool">Place</span>
             </div>
             
-            <!-- Game HUD -->
             <div id="hud">
                 <div id="health" class="hud-item">Health: <span id="healthValue">100</span></div>
                 <div id="ammo" class="hud-item">Ammo: <span id="ammoValue">30/90</span></div>
@@ -413,23 +81,19 @@
                     <div id="weaponSlots"></div>
                 </div>
                 <div id="crosshair"></div>
-                <div style="position: absolute; top: 20px; left: 50%; transform: translateX(-50%); text-align: center;">
+                <div style="position:absolute;top:20px;left:50%;transform:translateX(-50%);text-align:center">
                     <div>WASD: Move | Mouse: Look | Click: Shoot | R: Reload | 1-4: Weapons | E: Editor</div>
                 </div>
             </div>
             
-            <!-- Enhanced Editor Panel -->
             <div id="editorPanel" class="ui-panel">
                 <h3>🛠️ Stage Editor</h3>
-                
-                <!-- Category Tabs -->
                 <div class="category-tabs">
                     <button class="category-tab active" onclick="setEditorMode('props')">📦 Props</button>
                     <button class="category-tab" onclick="setEditorMode('terrain')">🏔️ Terrain</button>
                     <button class="category-tab" onclick="setEditorMode('select')">🎯 Select</button>
                 </div>
                 
-                <!-- Props Controls -->
                 <div id="propsControls" class="prop-controls">
                     <div class="control-group">
                         <label>Prop Type:</label>
@@ -443,11 +107,10 @@
                         </select>
                     </div>
                     
-                    <!-- Color Swatches -->
                     <div class="control-group">
                         <label>Color:</label>
                         <div class="color-swatches" id="colorSwatches"></div>
-                        <input type="color" id="customColor" value="#666666" style="margin-top: 10px;">
+                        <input type="color" id="customColor" value="#666666" style="margin-top:10px">
                     </div>
                     
                     <div class="control-group">
@@ -456,35 +119,32 @@
                     </div>
                 </div>
                 
-                <!-- Select Mode Controls -->
-                <div id="selectControls" class="prop-controls" style="display: none;">
+                <div id="selectControls" class="prop-controls" style="display:none">
                     <div class="control-group">
                         <button onclick="deleteSelected()">🗑️ Delete Selected</button>
                         <button onclick="duplicateSelected()">📋 Duplicate</button>
                         <button onclick="clearSelection()">❌ Clear Selection</button>
                         <label>Rotation:</label>
                         <div class="rotation-controls">
-                            <button onclick="rotateSelected('x', -45)">↻X</button>
-                            <button onclick="rotateSelected('y', -45)">↻Y</button>
-                            <button onclick="rotateSelected('z', -45)">↻Z</button>
-                            <button onclick="rotateSelected('x', 45)">↺X</button>
-                            <button onclick="rotateSelected('y', 45)">↺Y</button>
-                            <button onclick="rotateSelected('z', 45)">↺Z</button>
+                            <button onclick="rotateSelected('x',-45)">↻X</button>
+                            <button onclick="rotateSelected('y',-45)">↻Y</button>
+                            <button onclick="rotateSelected('z',-45)">↻Z</button>
+                            <button onclick="rotateSelected('x',45)">↺X</button>
+                            <button onclick="rotateSelected('y',45)">↺Y</button>
+                            <button onclick="rotateSelected('z',45)">↺Z</button>
                         </div>
                     </div>
                 </div>
                 
-                <!-- File Operations -->
                 <div class="control-group">
                     <button onclick="clearStage()">🧹 Clear Stage</button>
                     <button onclick="saveStage()">💾 Save Stage</button>
                     <button onclick="loadStage()">📁 Load Stage</button>
                 </div>
                 
-                <button onclick="exitEditor()" style="width: 100%; margin-top: 15px;">🎮 Exit Editor</button>
+                <button onclick="exitEditor()" style="width:100%;margin-top:15px">🎮 Exit Editor</button>
             </div>
             
-            <!-- Enhanced Terrain Panel -->
             <div id="terrainPanel" class="ui-panel">
                 <h3>🏔️ Terrain Sculpting</h3>
                 <div class="control-group">
@@ -508,7 +168,6 @@
                 <button onclick="resetTerrain()">🔄 Reset Terrain</button>
             </div>
             
-            <!-- Online Panel -->
             <div id="onlinePanel" class="ui-panel">
                 <h3>🌐 Online Game</h3>
                 <div>Room: <span id="currentRoom">-</span></div>
@@ -520,6 +179,32 @@
     </div>
 
     <script>
+        // Global vars
+        let database,scene,camera,renderer,terrain,terrainGeometry,terrainVertices,props=[],bullets=[],enemies=[],brushPreview,gizmo,selectedObjects=[],currentColor='#666666';
+        let isOnline=false,currentRoom,playerId,otherPlayers={},remotePlayerMeshes={},playerColor='#00ff88';
+        let gameMode='menu',editorMode='props',terrainMode='raise',isPointerLocked=false,lastShot=0,isMouseDown=false,keys={},mouseX=0,mouseY=0;
+        let draggingAxis,dragStart,propStartPos;
+        
+        // Player colors
+        const playerColors=['#00ff88','#ff4488','#4488ff','#ffff44','#ff8844','#88ff44','#8844ff','#44ffff'];
+        
+        // Editor camera
+        let editorCamera={radius:25,theta:0,phi:Math.PI/4,target:new THREE.Vector3(0,0,0),isRotating:false,lastMouseX:0,lastMouseY:0};
+        
+        // Player
+        let player={health:100,position:new THREE.Vector3(0,50,0),rotation:new THREE.Euler(0,0,0),velocity:new THREE.Vector3(0,0,0),onGround:false,weapons:[],currentWeapon:0};
+        
+        // Color palette
+        const colorPalette=['#666666','#ff4444','#44ff44','#4444ff','#ffff44','#ff44ff','#44ffff','#ffffff','#884444','#448844','#444488','#888844','#884488','#448888','#000000','#cccccc','#ff8844','#88ff44','#4488ff','#ff4488','#88ff88','#ff8888','#8888ff','#ffaa44'];
+        
+        // Weapon classes
+        const weaponClasses={
+            assault:{name:"Assault Rifle",damage:25,fireRate:100,ammo:30,maxAmmo:90,range:100,spread:.02,automatic:true,color:0xff4444},
+            sniper:{name:"Sniper Rifle",damage:80,fireRate:800,ammo:5,maxAmmo:20,range:200,spread:.001,automatic:false,color:0x4444ff},
+            shotgun:{name:"Shotgun",damage:15,fireRate:600,ammo:8,maxAmmo:32,range:30,spread:.1,automatic:false,pellets:5,color:0x44ff44},
+            pistol:{name:"Pistol",damage:37,fireRate:250,ammo:12,maxAmmo:48,range:50,spread:.03,automatic:false,color:0xffff44}
+        };
+
         // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyDh76qcMU1xV1ik5FdKti8YP0ONyPelsy0",
@@ -532,1579 +217,1162 @@
             measurementId: "G-ZN7PQ2TQP3"
         };
         
-        // Firebase variables
-        let database = null;
-        let isOnline = false;
-        let currentRoom = null;
-        let playerId = null;
-        let otherPlayers = {};
-        
-        // Enhanced Game State
-        let scene, camera, renderer, controls;
-        let gameMode = 'menu';
-        let editorMode = 'props';
-        let terrainMode = 'raise';
-        let selectedObjects = [];
-        let currentColor = '#666666';
-        
-        // Color palette
-        const colorPalette = [
-            '#666666', '#ff4444', '#44ff44', '#4444ff',
-            '#ffff44', '#ff44ff', '#44ffff', '#ffffff',
-            '#884444', '#448844', '#444488', '#888844',
-            '#884488', '#448888', '#000000', '#cccccc',
-            '#ff8844', '#88ff44', '#4488ff', '#ff4488',
-            '#88ff88', '#ff8888', '#8888ff', '#ffaa44'
-        ];
-        
-        // Editor camera controls
-        let editorCamera = {
-            radius: 25,
-            theta: 0,
-            phi: Math.PI / 4,
-            target: new THREE.Vector3(0, 0, 0),
-            isRotating: false,
-            lastMouseX: 0,
-            lastMouseY: 0
-        };
-        
-        // Game Objects
-        let terrain, terrainGeometry, terrainVertices;
-        let props = [];
-        let bullets = [];
-        let enemies = [];
-        let brushPreview = null;
-        let player = {
-            health: 100,
-            position: new THREE.Vector3(0, 50, 0),
-            rotation: new THREE.Euler(0, 0, 0),
-            velocity: new THREE.Vector3(0, 0, 0),
-            onGround: false,
-            weapons: [],
-            currentWeapon: 0
-        };
-        
-        // Weapon Classes
-        const weaponClasses = {
-            assault: {
-                name: "Assault Rifle",
-                damage: 25,
-                fireRate: 100,
-                ammo: 30,
-                maxAmmo: 90,
-                range: 100,
-                spread: 0.02,
-                automatic: true,
-                color: 0xff4444
-            },
-            sniper: {
-                name: "Sniper Rifle",
-                damage: 80,
-                fireRate: 800,
-                ammo: 5,
-                maxAmmo: 20,
-                range: 200,
-                spread: 0.001,
-                automatic: false,
-                color: 0x4444ff
-            },
-            shotgun: {
-                name: "Shotgun",
-                damage: 15,
-                fireRate: 600,
-                ammo: 8,
-                maxAmmo: 32,
-                range: 30,
-                spread: 0.1,
-                automatic: false,
-                pellets: 5,
-                color: 0x44ff44
-            },
-            pistol: {
-                name: "Pistol",
-                damage: 37,
-                fireRate: 250,
-                ammo: 12,
-                maxAmmo: 48,
-                range: 50,
-                spread: 0.03,
-                automatic: false,
-                color: 0xffff44
-            }
-        };
-        
-        // Input handling
-        const keys = {};
-        let mouseX = 0, mouseY = 0;
-        let isPointerLocked = false;
-        let lastShot = 0;
-        let isMouseDown = false;
-        
-        // Initialize Firebase
-        function initFirebase() {
-            try {
+        // Init Firebase
+        function initFirebase(){
+            try{
                 firebase.initializeApp(firebaseConfig);
-                database = firebase.database();
-                console.log("Firebase initialized successfully!");
-            } catch (error) {
-                console.error("Firebase initialization failed:", error);
-                database = null;
+                database=firebase.database();
+                console.log("Firebase initialized!");
+            }catch(e){
+                console.error("Firebase init failed:",e);
+                database=null;
             }
         }
         
-        // Initialize
-        function init() {
-            scene = new THREE.Scene();
-            scene.fog = new THREE.Fog(0x222222, 50, 200);
+        // Init
+        function init(){
+            scene=new THREE.Scene();
+            scene.fog=new THREE.Fog(0x222222,50,200);
             
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera=new THREE.PerspectiveCamera(75,window.innerWidth/window.innerHeight,.1,1000);
             camera.position.copy(player.position);
             
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer=new THREE.WebGLRenderer({antialias:true});
+            renderer.setSize(window.innerWidth,window.innerHeight);
             renderer.setClearColor(0x222222);
-            renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.shadowMap.enabled=true;
+            renderer.shadowMap.type=THREE.PCFSoftShadowMap;
             document.getElementById('gameContainer').appendChild(renderer.domElement);
             
-            // Enhanced lighting
-            const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
-            scene.add(ambientLight);
+            // Lighting
+            scene.add(new THREE.AmbientLight(0x404040,.4));
+            const dirLight=new THREE.DirectionalLight(0xffffff,.8);
+            dirLight.position.set(50,100,50);
+            dirLight.castShadow=true;
+            dirLight.shadow.mapSize.width=2048;
+            dirLight.shadow.mapSize.height=2048;
+            scene.add(dirLight);
             
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            directionalLight.position.set(50, 100, 50);
-            directionalLight.castShadow = true;
-            directionalLight.shadow.mapSize.width = 2048;
-            directionalLight.shadow.mapSize.height = 2048;
-            directionalLight.shadow.camera.near = 0.5;
-            directionalLight.shadow.camera.far = 500;
-            scene.add(directionalLight);
-            
-            // Point lights for better atmosphere
-            const pointLight1 = new THREE.PointLight(0x00ff88, 0.3, 50);
-            pointLight1.position.set(25, 10, 25);
-            scene.add(pointLight1);
-            
-            const pointLight2 = new THREE.PointLight(0xff4488, 0.3, 50);
-            pointLight2.position.set(-25, 10, -25);
-            scene.add(pointLight2);
+            // Point lights
+            const p1=new THREE.PointLight(0x00ff88,.3,50);
+            p1.position.set(25,10,25);
+            scene.add(p1);
+            const p2=new THREE.PointLight(0xff4488,.3,50);
+            p2.position.set(-25,10,-25);
+            scene.add(p2);
             
             createTerrain();
-            initializeWeapons();
+            initWeapons();
             setupUI();
-            setupEventListeners();
-            animate();    
-            // Mouse interaction for gizmo
-            renderer.domElement.addEventListener('mousedown', (e) => {
-                if (gameMode === 'editor' && editorMode === 'select' && gizmo) {
-                    const mouse = new THREE.Vector2(
-                        (e.clientX / window.innerWidth) * 2 - 1,
-                        -(e.clientY / window.innerHeight) * 2 + 1
-                    );
-                    const raycaster = new THREE.Raycaster();
-                    raycaster.setFromCamera(mouse, camera);
-                    const intersects = raycaster.intersectObjects(gizmo.children, false);
-                    if (intersects.length > 0) {
-                        draggingAxis = intersects[0].object.name.replace('gizmo_', '');
-                        dragStart = intersects[0].point.clone();
-                        propStartPos = selectedObjects[0].position.clone();
-                        isMouseDown = true;
-                    }
-                }
-            });
-
-            renderer.domElement.addEventListener('mousemove', (e) => {
-                if (gameMode === 'editor' && editorMode === 'select' && draggingAxis && isMouseDown && selectedObjects.length === 1) {
-                    const mouse = new THREE.Vector2(
-                        (e.clientX / window.innerWidth) * 2 - 1,
-                        -(e.clientY / window.innerHeight) * 2 + 1
-                    );
-                    const raycaster = new THREE.Raycaster();
-                    raycaster.setFromCamera(mouse, camera);
-                    // Plane for axis movement
-                    let planeNormal;
-                    switch (draggingAxis) {
-                        case 'x': planeNormal = new THREE.Vector3(0, 1, 0); break;
-                        case 'y': planeNormal = new THREE.Vector3(1, 0, 0); break;
-                        case 'z': planeNormal = new THREE.Vector3(0, 1, 0); break;
-                    }
-                    const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(planeNormal, dragStart);
-                    const intersection = new THREE.Vector3();
-                    raycaster.ray.intersectPlane(plane, intersection);
-
-                    if (intersection) {
-                        const delta = intersection.clone().sub(dragStart);
-                        let moveVec = new THREE.Vector3();
-                        moveVec[draggingAxis] = delta[draggingAxis];
-                        selectedObjects[0].position.copy(propStartPos.clone().add(moveVec));
-                        updateGizmoPosition();
-                    }
-                }
-            });
-
-            renderer.domElement.addEventListener('mouseup', () => {
-                draggingAxis = null;
-                dragStart = null;
-                propStartPos = null;
-            });
+            setupEvents();
+            animate();
         }
         
-        function setupUI() {
-            // Setup color swatches
-            const swatchContainer = document.getElementById('colorSwatches');
-            colorPalette.forEach((color, index) => {
-                const swatch = document.createElement('div');
-                swatch.className = 'color-swatch';
-                swatch.style.backgroundColor = color;
-                swatch.onclick = () => selectColor(color, swatch);
-                if (index === 0) {
-                    swatch.classList.add('active');
-                }
+        function setupUI(){
+            const swatchContainer=document.getElementById('colorSwatches');
+            colorPalette.forEach((color,i)=>{
+                const swatch=document.createElement('div');
+                swatch.className='color-swatch';
+                swatch.style.backgroundColor=color;
+                swatch.onclick=()=>selectColor(color,swatch);
+                if(i===0)swatch.classList.add('active');
                 swatchContainer.appendChild(swatch);
             });
             
-            // Setup slider updates
-            document.getElementById('propScale').addEventListener('input', (e) => {
-                document.getElementById('scaleValue').textContent = parseFloat(e.target.value).toFixed(1);
+            ['propScale','brushSize','brushStrength','brushFalloff'].forEach(id=>{
+                document.getElementById(id).addEventListener('input',e=>{
+                    const val=parseFloat(e.target.value);
+                    const display=id.replace(/([A-Z])/g,' $1').toLowerCase().replace('prop ','');
+                    document.getElementById(display+'Value').textContent=val.toFixed(1);
+                    if(id==='brushSize')updateBrushPreview();
+                });
             });
             
-            document.getElementById('brushSize').addEventListener('input', (e) => {
-                document.getElementById('brushSizeValue').textContent = e.target.value;
-                updateBrushPreview();
-            });
-            
-            document.getElementById('brushStrength').addEventListener('input', (e) => {
-                document.getElementById('strengthValue').textContent = parseFloat(e.target.value).toFixed(1);
-            });
-            
-            document.getElementById('brushFalloff').addEventListener('input', (e) => {
-                document.getElementById('falloffValue').textContent = parseFloat(e.target.value).toFixed(1);
-            });
-            
-            document.getElementById('customColor').addEventListener('input', (e) => {
-                selectColor(e.target.value);
-            });
+            document.getElementById('customColor').addEventListener('input',e=>selectColor(e.target.value));
         }
         
-        function selectColor(color, swatchElement = null) {
-            currentColor = color;
-            document.getElementById('customColor').value = color;
-            
-            // Update active swatch
-            document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
-            if (swatchElement) {
-                swatchElement.classList.add('active');
-            }
+        function selectColor(color,swatchElement){
+            currentColor=color;
+            document.getElementById('customColor').value=color;
+            document.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('active'));
+            if(swatchElement)swatchElement.classList.add('active');
         }
         
-        function setEditorMode(mode) {
-            editorMode = mode;
-            
-            // Update UI
-            document.querySelectorAll('.category-tab').forEach(tab => tab.classList.remove('active'));
+        function setEditorMode(mode){
+            editorMode=mode;
+            document.querySelectorAll('.category-tab').forEach(tab=>tab.classList.remove('active'));
             event.target.classList.add('active');
             
-            // Show/hide relevant panels
-            document.getElementById('propsControls').style.display = mode === 'props' ? 'block' : 'none';
-            document.getElementById('selectControls').style.display = mode === 'select' ? 'block' : 'none';
-            document.getElementById('terrainPanel').style.display = mode === 'terrain' ? 'block' : 'none';
+            document.getElementById('propsControls').style.display=mode==='props'?'block':'none';
+            document.getElementById('selectControls').style.display=mode==='select'?'block':'none';
+            document.getElementById('terrainPanel').style.display=mode==='terrain'?'block':'none';
             
-            // Update mode indicator
-            document.getElementById('currentMode').textContent = 
-                mode === 'props' ? 'Props Mode' : 
-                mode === 'terrain' ? 'Terrain Mode' : 'Select Mode';
+            document.getElementById('currentMode').textContent=mode==='props'?'Props Mode':mode==='terrain'?'Terrain Mode':'Select Mode';
             
-            // Clear selection when switching modes
-            if (mode !== 'select') {
-                clearSelection();
-            }
-            
-            // Update brush preview visibility
-            if (mode === 'terrain') {
-                createBrushPreview();
-            } else {
-                removeBrushPreview();
-            }
+            if(mode!=='select')clearSelection();
+            if(mode==='terrain')createBrushPreview();else removeBrushPreview();
+            if(mode==='select')showGizmoForSelected();else removeGizmo();
         }
         
-        function setTerrainMode(mode) {
-            terrainMode = mode;
-            document.querySelectorAll('#terrainPanel .category-tab').forEach(tab => tab.classList.remove('active'));
+        function setTerrainMode(mode){
+            terrainMode=mode;
+            document.querySelectorAll('#terrainPanel .category-tab').forEach(tab=>tab.classList.remove('active'));
             event.target.classList.add('active');
-            document.getElementById('currentTool').textContent = 
-                mode.charAt(0).toUpperCase() + mode.slice(1);
+            document.getElementById('currentTool').textContent=mode.charAt(0).toUpperCase()+mode.slice(1);
         }
         
-        function createTerrain() {
-            const size = 200;
-            const resolution = 64;
-            terrainGeometry = new THREE.PlaneGeometry(size, size, resolution - 1, resolution - 1);
-            terrainGeometry.rotateX(-Math.PI / 2);
+        function createTerrain(){
+            const size=200,resolution=64;
+            terrainGeometry=new THREE.PlaneGeometry(size,size,resolution-1,resolution-1);
+            terrainGeometry.rotateX(-Math.PI/2);
+            terrainVertices=terrainGeometry.attributes.position.array;
             
-            terrainVertices = terrainGeometry.attributes.position.array;
-            
-            const terrainMaterial = new THREE.MeshLambertMaterial({ 
-                color: 0x446644,
-                wireframe: false 
-            });
-            
-            terrain = new THREE.Mesh(terrainGeometry, terrainMaterial);
-            terrain.receiveShadow = true;
-            terrain.name = 'terrain';
+            const terrainMaterial=new THREE.MeshLambertMaterial({color:0x446644});
+            terrain=new THREE.Mesh(terrainGeometry,terrainMaterial);
+            terrain.receiveShadow=true;
+            terrain.name='terrain';
             scene.add(terrain);
             
             randomizeTerrain();
         }
         
-        function randomizeTerrain() {
-            for (let i = 1; i < terrainVertices.length; i += 3) {
-                terrainVertices[i] = Math.random() * 5 - 1;
+        function randomizeTerrain(){
+            for(let i=1;i<terrainVertices.length;i+=3){
+                terrainVertices[i]=Math.random()*5-1;
             }
-            terrainGeometry.attributes.position.needsUpdate = true;
+            terrainGeometry.attributes.position.needsUpdate=true;
             terrainGeometry.computeVertexNormals();
         }
         
-        function initializeWeapons() {
-            player.weapons = [
-                { 
-                    ...weaponClasses.assault, 
-                    currentAmmo: weaponClasses.assault.ammo,
-                    reserveAmmo: weaponClasses.assault.maxAmmo
-                },
-                { 
-                    ...weaponClasses.sniper, 
-                    currentAmmo: weaponClasses.sniper.ammo,
-                    reserveAmmo: weaponClasses.sniper.maxAmmo
-                },
-                { 
-                    ...weaponClasses.shotgun, 
-                    currentAmmo: weaponClasses.shotgun.ammo,
-                    reserveAmmo: weaponClasses.shotgun.maxAmmo
-                },
-                { 
-                    ...weaponClasses.pistol, 
-                    currentAmmo: weaponClasses.pistol.ammo,
-                    reserveAmmo: weaponClasses.pistol.maxAmmo
-                }
-            ];
+        function initWeapons(){
+            player.weapons=Object.keys(weaponClasses).map(key=>({
+                ...weaponClasses[key],
+                currentAmmo:weaponClasses[key].ammo,
+                reserveAmmo:weaponClasses[key].maxAmmo
+            }));
             updateWeaponDisplay();
         }
         
-        function updateWeaponDisplay() {
-            const slotsContainer = document.getElementById('weaponSlots');
-            slotsContainer.innerHTML = '';
+        function updateWeaponDisplay(){
+            const slotsContainer=document.getElementById('weaponSlots');
+            slotsContainer.innerHTML='';
             
-            player.weapons.forEach((weapon, index) => {
-                const slot = document.createElement('div');
-                slot.className = `weapon-slot ${index === player.currentWeapon ? 'active' : ''}`;
-                slot.textContent = index + 1;
-                slot.style.backgroundColor = `#${weapon.color.toString(16).padStart(6, '0')}40`;
-                slot.onclick = () => switchWeapon(index);
+            player.weapons.forEach((weapon,i)=>{
+                const slot=document.createElement('div');
+                slot.className=`weapon-slot ${i===player.currentWeapon?'active':''}`;
+                slot.textContent=i+1;
+                slot.style.backgroundColor=`#${weapon.color.toString(16).padStart(6,'0')}40`;
+                slot.onclick=()=>switchWeapon(i);
                 slotsContainer.appendChild(slot);
             });
             
-            const current = player.weapons[player.currentWeapon];
-            document.getElementById('weaponName').textContent = current.name;
-            document.getElementById('ammoValue').textContent = `${current.currentAmmo}/${current.reserveAmmo || 0}`;
+            const current=player.weapons[player.currentWeapon];
+            document.getElementById('weaponName').textContent=current.name;
+            document.getElementById('ammoValue').textContent=`${current.currentAmmo}/${current.reserveAmmo||0}`;
         }
         
-        function switchWeapon(index) {
-            if (index >= 0 && index < player.weapons.length) {
-                player.currentWeapon = index;
+        function switchWeapon(i){
+            if(i>=0&&i<player.weapons.length){
+                player.currentWeapon=i;
                 updateWeaponDisplay();
             }
         }
         
-        function createBrushPreview() {
-            if (brushPreview) return;
-            
-            const brushSize = parseInt(document.getElementById('brushSize').value);
-            const geometry = new THREE.RingGeometry(brushSize * 0.8, brushSize, 32);
-            const material = new THREE.MeshBasicMaterial({ 
-                color: 0x00ff88, 
-                transparent: true, 
-                opacity: 0.3,
-                side: THREE.DoubleSide
-            });
-            
-            brushPreview = new THREE.Mesh(geometry, material);
-            brushPreview.rotation.x = -Math.PI / 2;
+        function createBrushPreview(){
+            if(brushPreview)return;
+            const brushSize=parseInt(document.getElementById('brushSize').value);
+            const geometry=new THREE.RingGeometry(brushSize*.8,brushSize,32);
+            const material=new THREE.MeshBasicMaterial({color:0x00ff88,transparent:true,opacity:.3,side:THREE.DoubleSide});
+            brushPreview=new THREE.Mesh(geometry,material);
+            brushPreview.rotation.x=-Math.PI/2;
             scene.add(brushPreview);
         }
         
-        function updateBrushPreview() {
-            if (!brushPreview) return;
-            
-            const brushSize = parseInt(document.getElementById('brushSize').value);
+        function updateBrushPreview(){
+            if(!brushPreview)return;
+            const brushSize=parseInt(document.getElementById('brushSize').value);
             scene.remove(brushPreview);
-            
-            const geometry = new THREE.RingGeometry(brushSize * 0.8, brushSize, 32);
+            const geometry=new THREE.RingGeometry(brushSize*.8,brushSize,32);
             brushPreview.geometry.dispose();
-            brushPreview.geometry = geometry;
+            brushPreview.geometry=geometry;
             scene.add(brushPreview);
         }
         
-        function removeBrushPreview() {
-            if (brushPreview) {
+        function removeBrushPreview(){
+            if(brushPreview){
                 scene.remove(brushPreview);
                 brushPreview.geometry.dispose();
                 brushPreview.material.dispose();
-                brushPreview = null;
+                brushPreview=null;
             }
         }
         
-        function setupEventListeners() {
-            // Keyboard events
-            document.addEventListener('keydown', (e) => {
-                keys[e.code] = true;
-                
-                if (gameMode === 'game') {
-                    if (e.code === 'KeyR') reload();
-                    if (e.code === 'KeyE') startEditor();
-                    if (e.code >= 'Digit1' && e.code <= 'Digit4') {
-                        switchWeapon(parseInt(e.code.slice(-1)) - 1);
-                    }
-                } else if (gameMode === 'editor') {
-                    if (e.code === 'Delete' || e.code === 'Backspace') {
-                        deleteSelected();
-                    }
-                    if (e.code === 'KeyC' && e.ctrlKey) {
-                        duplicateSelected();
-                    }
-                    if (e.code === 'Escape') {
-                        clearSelection();
-                    }
+        function setupEvents(){
+            document.addEventListener('keydown',e=>{
+                keys[e.code]=true;
+                if(gameMode==='game'){
+                    if(e.code==='KeyR')reload();
+                    if(e.code==='KeyE')startEditor();
+                    if(e.code>='Digit1'&&e.code<='Digit4')switchWeapon(parseInt(e.code.slice(-1))-1);
+                }else if(gameMode==='editor'){
+                    if(e.code==='Delete'||e.code==='Backspace')deleteSelected();
+                    if(e.code==='KeyC'&&e.ctrlKey)duplicateSelected();
+                    if(e.code==='Escape')clearSelection();
                 }
             });
             
-            document.addEventListener('keyup', (e) => {
-                keys[e.code] = false;
-            });
+            document.addEventListener('keyup',e=>keys[e.code]=false);
             
-            // Mouse events
-            renderer.domElement.addEventListener('click', (e) => {
-                if (gameMode === 'game' && !isPointerLocked) {
+            renderer.domElement.addEventListener('click',e=>{
+                if(gameMode==='game'&&!isPointerLocked){
                     renderer.domElement.requestPointerLock();
-                } else if (gameMode === 'editor') {
+                }else if(gameMode==='editor'){
                     handleEditorClick(e);
                 }
             });
             
-            renderer.domElement.addEventListener('mousedown', (e) => {
-                isMouseDown = true;
-                if (gameMode === 'game' && isPointerLocked) {
+            renderer.domElement.addEventListener('mousedown',e=>{
+                isMouseDown=true;
+                if(gameMode==='game'&&isPointerLocked){
                     shoot();
-                } else if (gameMode === 'editor') {
-                    if (editorMode === 'terrain' && e.button === 0) {
-                        // Start terrain sculpting
-                        isMouseDown = true;
+                }else if(gameMode==='editor'){
+                    if(editorMode==='terrain'&&e.button===0){
                         sculptTerrain(e);
-                    } else if (e.button === 2) { // Right mouse button
-                        editorCamera.isRotating = true;
-                        editorCamera.lastMouseX = e.clientX;
-                        editorCamera.lastMouseY = e.clientY;
+                    }else if(editorMode==='select'&&gizmo){
+                        const mouse=new THREE.Vector2((e.clientX/window.innerWidth)*2-1,-(e.clientY/window.innerHeight)*2+1);
+                        const raycaster=new THREE.Raycaster();
+                        raycaster.setFromCamera(mouse,camera);
+                        const intersects=raycaster.intersectObjects(gizmo.children,false);
+                        if(intersects.length>0){
+                            draggingAxis=intersects[0].object.name.replace('gizmo_','');
+                            dragStart=intersects[0].point.clone();
+                            propStartPos=selectedObjects[0].position.clone();
+                        }
+                    }else if(e.button===2){
+                        editorCamera.isRotating=true;
+                        editorCamera.lastMouseX=e.clientX;
+                        editorCamera.lastMouseY=e.clientY;
                     }
                 }
             });
-
-            renderer.domElement.addEventListener('contextmenu', (e) => {
-                e.preventDefault();
+            
+            renderer.domElement.addEventListener('contextmenu',e=>e.preventDefault());
+            
+            renderer.domElement.addEventListener('mouseup',()=>{
+                isMouseDown=false;
+                editorCamera.isRotating=false;
+                draggingAxis=null;
+                dragStart=null;
+                propStartPos=null;
             });
             
-            renderer.domElement.addEventListener('mouseup', () => {
-                isMouseDown = false;
-                editorCamera.isRotating = false;
-            });
-            
-            renderer.domElement.addEventListener('mousemove', (e) => {
-                if (gameMode === 'editor') {
-                    if (editorMode === 'terrain' && isMouseDown) {
+            renderer.domElement.addEventListener('mousemove',e=>{
+                if(gameMode==='editor'){
+                    if(editorMode==='terrain'&&isMouseDown){
                         sculptTerrain(e);
-                    } else if (editorCamera.isRotating) {
-                        const deltaX = e.clientX - editorCamera.lastMouseX;
-                        const deltaY = e.clientY - editorCamera.lastMouseY;
-                        
-                        editorCamera.theta -= deltaX * 0.01;
-                        editorCamera.phi += deltaY * 0.01;
-                        editorCamera.phi = Math.max(0.1, Math.min(Math.PI - 0.1, editorCamera.phi));
-                        
-                        editorCamera.lastMouseX = e.clientX;
-                        editorCamera.lastMouseY = e.clientY;
+                    }else if(draggingAxis&&isMouseDown&&selectedObjects.length===1){
+                        const mouse=new THREE.Vector2((e.clientX/window.innerWidth)*2-1,-(e.clientY/window.innerHeight)*2+1);
+                        const raycaster=new THREE.Raycaster();
+                        raycaster.setFromCamera(mouse,camera);
+                        let planeNormal;
+                        switch(draggingAxis){
+                            case 'x':planeNormal=new THREE.Vector3(0,1,0);break;
+                            case 'y':planeNormal=new THREE.Vector3(1,0,0);break;
+                            case 'z':planeNormal=new THREE.Vector3(0,1,0);break;
+                        }
+                        const plane=new THREE.Plane().setFromNormalAndCoplanarPoint(planeNormal,dragStart);
+                        const intersection=new THREE.Vector3();
+                        raycaster.ray.intersectPlane(plane,intersection);
+                        if(intersection){
+                            const delta=intersection.clone().sub(dragStart);
+                            let moveVec=new THREE.Vector3();
+                            moveVec[draggingAxis]=delta[draggingAxis];
+                            selectedObjects[0].position.copy(propStartPos.clone().add(moveVec));
+                            updateGizmoPosition();
+                        }
+                    }else if(editorCamera.isRotating){
+                        const deltaX=e.clientX-editorCamera.lastMouseX;
+                        const deltaY=e.clientY-editorCamera.lastMouseY;
+                        editorCamera.theta-=deltaX*.01;
+                        editorCamera.phi+=deltaY*.01;
+                        editorCamera.phi=Math.max(.1,Math.min(Math.PI-.1,editorCamera.phi));
+                        editorCamera.lastMouseX=e.clientX;
+                        editorCamera.lastMouseY=e.clientY;
                         updateEditorCamera();
                     }
-                    
-                    // Update brush preview position
-                    if (editorMode === 'terrain' && brushPreview) {
-                        updateBrushPosition(e);
-                    }
+                    if(editorMode==='terrain'&&brushPreview)updateBrushPosition(e);
                 }
             });
             
-            renderer.domElement.addEventListener('wheel', (e) => {
-                if (gameMode === 'editor') {
+            renderer.domElement.addEventListener('wheel',e=>{
+                if(gameMode==='editor'){
                     e.preventDefault();
-                    editorCamera.radius += e.deltaY * 0.02;
-                    editorCamera.radius = Math.max(5, Math.min(100, editorCamera.radius));
+                    editorCamera.radius+=e.deltaY*.02;
+                    editorCamera.radius=Math.max(5,Math.min(100,editorCamera.radius));
                     updateEditorCamera();
                 }
             });
             
-            document.addEventListener('pointerlockchange', () => {
-                isPointerLocked = document.pointerLockElement === renderer.domElement;
+            document.addEventListener('pointerlockchange',()=>{
+                isPointerLocked=document.pointerLockElement===renderer.domElement;
             });
             
-            document.addEventListener('mousemove', (e) => {
-                if (isPointerLocked) {
-                    mouseX -= e.movementX * 0.002;
-                    mouseY -= e.movementY * 0.002;
-                    mouseY = Math.max(-Math.PI/2, Math.min(Math.PI/2, mouseY));
+            document.addEventListener('mousemove',e=>{
+                if(isPointerLocked){
+                    mouseX-=e.movementX*.002;
+                    mouseY-=e.movementY*.002;
+                    mouseY=Math.max(-Math.PI/2,Math.min(Math.PI/2,mouseY));
                 }
             });
             
-            window.addEventListener('resize', () => {
-                camera.aspect = window.innerWidth / window.innerHeight;
+            window.addEventListener('resize',()=>{
+                camera.aspect=window.innerWidth/window.innerHeight;
                 camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.setSize(window.innerWidth,window.innerHeight);
             });
         }
         
-        function updateBrushPosition(event) {
-            const raycaster = new THREE.Raycaster();
-            const mouse = new THREE.Vector2();
-            
-            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-            
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObject(terrain);
-            
-            if (intersects.length > 0 && brushPreview) {
+        function updateBrushPosition(event){
+            const raycaster=new THREE.Raycaster();
+            const mouse=new THREE.Vector2();
+            mouse.x=(event.clientX/window.innerWidth)*2-1;
+            mouse.y=-(event.clientY/window.innerHeight)*2+1;
+            raycaster.setFromCamera(mouse,camera);
+            const intersects=raycaster.intersectObject(terrain);
+            if(intersects.length>0&&brushPreview){
                 brushPreview.position.copy(intersects[0].point);
-                brushPreview.position.y += 0.1;
+                brushPreview.position.y+=.1;
             }
         }
         
-        function startSinglePlayer() {
-            gameMode = 'game';
-            document.getElementById('mainMenu').style.display = 'none';
-            document.getElementById('hud').style.display = 'block';
-            player.position.set(0, 5, 0);
+        function startSinglePlayer(){
+            gameMode='game';
+            document.getElementById('mainMenu').style.display='none';
+            document.getElementById('hud').style.display='block';
+            player.position.set(0,5,0);
             spawnEnemies();
         }
         
-        function showOnlineMenu() {
-            document.getElementById('onlineSetup').style.display = 'block';
+        function showOnlineMenu(){
+            document.getElementById('onlineSetup').style.display='block';
         }
         
-        function joinOnlineGame() {
-            if (!database) {
-                alert("Firebase not initialized. Check your configuration.");
+        function getPlayerColor(index){
+            return playerColors[index%playerColors.length];
+        }
+        
+        function joinOnlineGame(){
+            if(!database){
+                alert("Firebase not initialized. Check configuration.");
                 return;
             }
             
-            isOnline = true;
-            playerId = 'player_' + Math.random().toString(36).substr(2, 9);
-            currentRoom = document.getElementById('roomCode').value || 'default_room';
+            isOnline=true;
+            playerId='player_'+Math.random().toString(36).substr(2,9);
+            currentRoom=document.getElementById('roomCode').value||'default_room';
             
-            const playerRef = database.ref(`rooms/${currentRoom}/players/${playerId}`);
-            playerRef.set({
-                name: document.getElementById('playerName').value || 'Anonymous',
-                position: { x: 0, y: 50, z: 0 },
-                health: 100,
-                joinedAt: firebase.database.ServerValue.TIMESTAMP
-            });
-            
-            database.ref(`rooms/${currentRoom}/map`).once('value', (snapshot) => {
-                const stageData = snapshot.val();
-                if (stageData) {
-                    // Clear current stage
-                    clearSelection();
-                    props.forEach(prop => {
-                        scene.remove(prop);
-                        prop.geometry.dispose();
-                        prop.material.dispose();
-                    });
-                    props = [];
-
-                    // Load terrain
-                    if (stageData.terrain) {
-                        for (let i = 0; i < Math.min(terrainVertices.length, stageData.terrain.length); i++) {
-                            terrainVertices[i] = stageData.terrain[i];
-                        }
-                        terrainGeometry.attributes.position.needsUpdate = true;
-                        terrainGeometry.computeVertexNormals();
-                    }
-
-                    // Load props
-                    if (stageData.props) {
-                        stageData.props.forEach(propData => {
-                            let geometry;
-                            const type = propData.type || 'cube';
-                            switch (type) {
-                                case 'cube': geometry = new THREE.BoxGeometry(2, 2, 2); break;
-                                case 'sphere': geometry = new THREE.SphereGeometry(1, 32, 32); break;
-                                case 'cylinder': geometry = new THREE.CylinderGeometry(1, 1, 2, 32); break;
-                                case 'ramp': geometry = new THREE.BoxGeometry(4, 1, 2); break;
-                                case 'wall': geometry = new THREE.BoxGeometry(10, 5, 0.5); break;
-                                case 'pillar': geometry = new THREE.CylinderGeometry(0.5, 0.5, 8, 16); break;
-                                default: geometry = new THREE.BoxGeometry(2, 2, 2);
-                            }
-                            const material = new THREE.MeshLambertMaterial({ color: propData.color });
-                            const prop = new THREE.Mesh(geometry, material);
-                            prop.position.fromArray(propData.position);
-                            prop.rotation.fromArray(propData.rotation);
-                            prop.scale.fromArray(propData.scale);
-                            prop.castShadow = true;
-                            prop.receiveShadow = true;
-                            prop.userData = { type: type, originalColor: propData.color };
-                            scene.add(prop);
-                            props.push(prop);
-                        });
-                    }
-                }
-                updatePlayerList();
-            });
-
-            // Listen for changes to the player list
-            database.ref(`rooms/${currentRoom}/players`).on('value', (snapshot) => {
-                const players = snapshot.val() || {};
-                // Remove yourself from otherPlayers
-                otherPlayers = {};
-                Object.keys(players).forEach(id => {
-                    if (id !== playerId) {
-                        otherPlayers[id] = players[id];
-                    }
+            // Get unique color based on existing players
+            database.ref(`rooms/${currentRoom}/players`).once('value',snapshot=>{
+                const players=snapshot.val()||{};
+                const usedColors=Object.values(players).map(p=>p.color);
+                playerColor=playerColors.find(c=>!usedColors.includes(c))||playerColors[0];
+                
+                const playerRef=database.ref(`rooms/${currentRoom}/players/${playerId}`);
+                playerRef.set({
+                    name:document.getElementById('playerName').value||'Anonymous',
+                    position:{x:0,y:50,z:0},
+                    health:100,
+                    color:playerColor,
+                    joinedAt:firebase.database.ServerValue.TIMESTAMP
                 });
-                updatePlayerList();
+                
+                // Auto sync map changes in real-time
+                database.ref(`rooms/${currentRoom}/map`).on('value',snapshot=>{
+                    const stageData=snapshot.val();
+                    if(stageData)loadStageData(stageData);
+                });
+                
+                // Listen for bullets
+                database.ref(`rooms/${currentRoom}/bullets`).on('child_added',snapshot=>{
+                    const bulletData=snapshot.val();
+                    if(bulletData.playerId!==playerId)createRemoteBullet(bulletData);
+                });
+                
+                // Auto-cleanup old bullets
+                database.ref(`rooms/${currentRoom}/bullets`).on('child_removed',snapshot=>{
+                    // Firebase auto-cleanup
+                });
+                
+                // Listen for player changes
+                database.ref(`rooms/${currentRoom}/players`).on('value',snapshot=>{
+                    const players=snapshot.val()||{};
+                    otherPlayers={};
+                    Object.keys(players).forEach(id=>{
+                        if(id!==playerId)otherPlayers[id]=players[id];
+                    });
+                    updatePlayerList();
+                });
+                
+                playerRef.onDisconnect().remove();
+                
+                document.getElementById('mainMenu').style.display='none';
+                document.getElementById('hud').style.display='block';
+                document.getElementById('onlinePanel').style.display='block';
+                document.getElementById('currentRoom').textContent=currentRoom;
+                gameMode='game';
             });
-            
-            playerRef.onDisconnect().remove();
-            
-            document.getElementById('mainMenu').style.display = 'none';
-            document.getElementById('hud').style.display = 'block';
-            document.getElementById('onlinePanel').style.display = 'block';
-            document.getElementById('currentRoom').textContent = currentRoom;
-            
-            gameMode = 'game';
         }
         
-        function createOnlineGame() {
-            currentRoom = 'room_' + Math.random().toString(36).substr(2, 6);
-            document.getElementById('roomCode').value = currentRoom;
+        function createOnlineGame(){
+            currentRoom='room_'+Math.random().toString(36).substr(2,6);
+            document.getElementById('roomCode').value=currentRoom;
             joinOnlineGame();
         }
         
-        function leaveOnlineGame() {
-            if (database && currentRoom && playerId) {
+        function leaveOnlineGame(){
+            if(database&&currentRoom&&playerId){
                 database.ref(`rooms/${currentRoom}/players/${playerId}`).remove();
                 database.ref(`rooms/${currentRoom}/players`).off();
+                database.ref(`rooms/${currentRoom}/map`).off();
+                database.ref(`rooms/${currentRoom}/bullets`).off();
             }
-            
-            isOnline = false;
-            currentRoom = null;
-            playerId = null;
-            otherPlayers = {};
-            
-            document.getElementById('onlinePanel').style.display = 'none';
-            gameMode = 'menu';
-            document.getElementById('mainMenu').style.display = 'block';
-            document.getElementById('hud').style.display = 'none';
+            isOnline=false;
+            currentRoom=null;
+            playerId=null;
+            otherPlayers={};
+            Object.values(remotePlayerMeshes).forEach(mesh=>{
+                scene.remove(mesh);
+                mesh.geometry.dispose();
+                mesh.material.dispose();
+            });
+            remotePlayerMeshes={};
+            document.getElementById('onlinePanel').style.display='none';
+            gameMode='menu';
+            document.getElementById('mainMenu').style.display='block';
+            document.getElementById('hud').style.display='none';
         }
         
-        function updatePlayerList() {
-            const playerList = document.getElementById('playerList');
-            const playerName = document.getElementById('playerName').value || 'You';
-            playerList.innerHTML = `<div class="player-item">${playerName} (You)</div>`;
-            
-            Object.keys(otherPlayers).forEach(id => {
-                const player = otherPlayers[id];
-                playerList.innerHTML += `<div class="player-item">${player.name}</div>`;
+        function updatePlayerList(){
+            const playerList=document.getElementById('playerList');
+            const playerName=document.getElementById('playerName').value||'You';
+            playerList.innerHTML=`<div class="player-item" style="color:${playerColor}">${playerName} (You)</div>`;
+            Object.keys(otherPlayers).forEach(id=>{
+                const p=otherPlayers[id];
+                playerList.innerHTML+=`<div class="player-item" style="color:${p.color}">${p.name}</div>`;
             });
         }
         
-        function updateEditorCamera() {
-            const x = editorCamera.radius * Math.sin(editorCamera.phi) * Math.cos(editorCamera.theta);
-            const y = editorCamera.radius * Math.cos(editorCamera.phi);
-            const z = editorCamera.radius * Math.sin(editorCamera.phi) * Math.sin(editorCamera.theta);
-            
-            camera.position.set(
-                editorCamera.target.x + x,
-                editorCamera.target.y + y,
-                editorCamera.target.z + z
-            );
+        function updateEditorCamera(){
+            const x=editorCamera.radius*Math.sin(editorCamera.phi)*Math.cos(editorCamera.theta);
+            const y=editorCamera.radius*Math.cos(editorCamera.phi);
+            const z=editorCamera.radius*Math.sin(editorCamera.phi)*Math.sin(editorCamera.theta);
+            camera.position.set(editorCamera.target.x+x,editorCamera.target.y+y,editorCamera.target.z+z);
             camera.lookAt(editorCamera.target);
         }
         
-        function startEditor() {
-            gameMode = 'editor';
-            document.getElementById('mainMenu').style.display = 'none';
-            document.getElementById('hud').style.display = 'none';
-            document.getElementById('editorPanel').style.display = 'block';
-            document.getElementById('modeIndicator').style.display = 'block';
-            
-            // Reset editor camera
-            editorCamera.radius = 25;
-            editorCamera.theta = 0;
-            editorCamera.phi = Math.PI / 4;
-            editorCamera.target.set(0, 0, 0);
+        function startEditor(){
+            gameMode='editor';
+            document.getElementById('mainMenu').style.display='none';
+            document.getElementById('hud').style.display='none';
+            document.getElementById('editorPanel').style.display='block';
+            document.getElementById('modeIndicator').style.display='block';
+            editorCamera.radius=25;
+            editorCamera.theta=0;
+            editorCamera.phi=Math.PI/4;
+            editorCamera.target.set(0,0,0);
             updateEditorCamera();
-            
-            // Set default mode
             setEditorMode('props');
-            
-            if (isPointerLocked) {
-                document.exitPointerLock();
-            }
+            if(isPointerLocked)document.exitPointerLock();
         }
         
-        function exitEditor() {
-            gameMode = 'game';
-            document.getElementById('editorPanel').style.display = 'none';
-            document.getElementById('terrainPanel').style.display = 'none';
-            document.getElementById('modeIndicator').style.display = 'none';
-            document.getElementById('hud').style.display = 'block';
+        function exitEditor(){
+            gameMode='game';
+            document.getElementById('editorPanel').style.display='none';
+            document.getElementById('terrainPanel').style.display='none';
+            document.getElementById('modeIndicator').style.display='none';
+            document.getElementById('hud').style.display='block';
             clearSelection();
             removeBrushPreview();
-            if (isOnline) saveMapToFirebase();
+            if(isOnline)saveMapToFirebase();
         }
         
-        function handleEditorClick(event) {
-            const raycaster = new THREE.Raycaster();
-            const mouse = new THREE.Vector2();
+        function handleEditorClick(event){
+            const raycaster=new THREE.Raycaster();
+            const mouse=new THREE.Vector2();
+            mouse.x=(event.clientX/window.innerWidth)*2-1;
+            mouse.y=-(event.clientY/window.innerHeight)*2+1;
+            raycaster.setFromCamera(mouse,camera);
             
-            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-            
-            raycaster.setFromCamera(mouse, camera);
-            
-            if (editorMode === 'props') {
-                const intersects = raycaster.intersectObject(terrain);
-                if (intersects.length > 0) {
-                    addProp(intersects[0].point);
-                }
-            } else if (editorMode === 'select') {
-                handleSelection(raycaster, event.shiftKey);
-            } else if (editorMode === 'terrain') {
-                // Terrain sculpting is handled in mousemove when mouse is down
+            if(editorMode==='props'){
+                const intersects=raycaster.intersectObject(terrain);
+                if(intersects.length>0)addProp(intersects[0].point);
+            }else if(editorMode==='select'){
+                handleSelection(raycaster,event.shiftKey);
             }
         }
         
-        function handleSelection(raycaster, addToSelection = false) {
-            const intersects = raycaster.intersectObjects(props);
-            
-            if (!addToSelection) {
-                clearSelection();
-            }
-            
-            if (intersects.length > 0) {
-                const selectedProp = intersects[0].object;
-                if (!selectedObjects.includes(selectedProp)) {
+        function handleSelection(raycaster,addToSelection=false){
+            const intersects=raycaster.intersectObjects(props);
+            if(!addToSelection)clearSelection();
+            if(intersects.length>0){
+                const selectedProp=intersects[0].object;
+                if(!selectedObjects.includes(selectedProp)){
                     selectedObjects.push(selectedProp);
-                    highlightObject(selectedProp, true);
+                    highlightObject(selectedProp,true);
+                    showGizmoForSelected();
                 }
             }
         }
         
-        function highlightObject(object, highlight) {
-            if (highlight) {
+        function highlightObject(object,highlight){
+            if(highlight){
                 object.material.emissive.setHex(0x004400);
-                object.material.emissiveIntensity = 0.3;
-            } else {
+                object.material.emissiveIntensity=.3;
+            }else{
                 object.material.emissive.setHex(0x000000);
-                object.material.emissiveIntensity = 0;
+                object.material.emissiveIntensity=0;
             }
         }
-
         
-        // --- Simple Gizmo for Prop Movement in Select Mode ---
-        let gizmo = null;
-        let draggingAxis = null;
-        let dragStart = null;
-        let propStartPos = null;
-
-        // Create gizmo arrows for selected prop
-        function showGizmoForSelected() {
+        function showGizmoForSelected(){
             removeGizmo();
-            if (selectedObjects.length !== 1 || editorMode !== 'select') return;
-            const prop = selectedObjects[0];
-            gizmo = new THREE.Group();
-
-            // Get prop bounding box size
-            const box = new THREE.Box3().setFromObject(prop);
-            const size = box.getSize(new THREE.Vector3());
-            const maxSize = Math.max(size.x, size.y, size.z, 0.8);
-
-            // Arrow geometry/material (scale with prop size)
-            const arrowGeom = new THREE.CylinderGeometry(0.1 * maxSize, 0.1 * maxSize, 2 * maxSize, 8);
-            const coneGeom = new THREE.ConeGeometry(0.2 * maxSize, 0.5 * maxSize, 8);
-
+            if(selectedObjects.length!==1||editorMode!=='select')return;
+            const prop=selectedObjects[0];
+            gizmo=new THREE.Group();
+            const box=new THREE.Box3().setFromObject(prop);
+            const size=box.getSize(new THREE.Vector3());
+            const maxSize=Math.max(size.x,size.y,size.z,.8);
+            const arrowGeom=new THREE.CylinderGeometry(.1*maxSize,.1*maxSize,2*maxSize,8);
+            const coneGeom=new THREE.ConeGeometry(.2*maxSize,.5*maxSize,8);
+            
             // X axis (red)
-            const xArrow = new THREE.Mesh(arrowGeom, new THREE.MeshBasicMaterial({ color: 0xff4444 }));
-            xArrow.position.set(1.5 * maxSize, 0, 0);
-            xArrow.rotation.z = -Math.PI/2;
-            xArrow.name = 'gizmo_x';
+            const xArrow=new THREE.Mesh(arrowGeom,new THREE.MeshBasicMaterial({color:0xff4444}));
+            xArrow.position.set(1.5*maxSize,0,0);
+            xArrow.rotation.z=-Math.PI/2;
+            xArrow.name='gizmo_x';
             gizmo.add(xArrow);
-
-            const xCone = new THREE.Mesh(coneGeom, new THREE.MeshBasicMaterial({ color: 0xff4444 }));
-            xCone.position.set(2.3 * maxSize, 0, 0);
-            xCone.rotation.z = -Math.PI/2;
-            xCone.name = 'gizmo_x';
+            const xCone=new THREE.Mesh(coneGeom,new THREE.MeshBasicMaterial({color:0xff4444}));
+            xCone.position.set(2.3*maxSize,0,0);
+            xCone.rotation.z=-Math.PI/2;
+            xCone.name='gizmo_x';
             gizmo.add(xCone);
-
+            
             // Y axis (green)
-            const yArrow = new THREE.Mesh(arrowGeom, new THREE.MeshBasicMaterial({ color: 0x44ff44 }));
-            yArrow.position.set(0, 1.5 * maxSize, 0);
-            yArrow.name = 'gizmo_y';
+            const yArrow=new THREE.Mesh(arrowGeom,new THREE.MeshBasicMaterial({color:0x44ff44}));
+            yArrow.position.set(0,1.5*maxSize,0);
+            yArrow.name='gizmo_y';
             gizmo.add(yArrow);
-
-            const yCone = new THREE.Mesh(coneGeom, new THREE.MeshBasicMaterial({ color: 0x44ff44 }));
-            yCone.position.set(0, 2.3 * maxSize, 0);
-            yCone.name = 'gizmo_y';
+            const yCone=new THREE.Mesh(coneGeom,new THREE.MeshBasicMaterial({color:0x44ff44}));
+            yCone.position.set(0,2.3*maxSize,0);
+            yCone.name='gizmo_y';
             gizmo.add(yCone);
-
+            
             // Z axis (blue)
-            const zArrow = new THREE.Mesh(arrowGeom, new THREE.MeshBasicMaterial({ color: 0x4444ff }));
-            zArrow.position.set(0, 0, 1.5 * maxSize);
-            zArrow.rotation.x = Math.PI/2;
-            zArrow.name = 'gizmo_z';
+            const zArrow=new THREE.Mesh(arrowGeom,new THREE.MeshBasicMaterial({color:0x4444ff}));
+            zArrow.position.set(0,0,1.5*maxSize);
+            zArrow.rotation.x=Math.PI/2;
+            zArrow.name='gizmo_z';
             gizmo.add(zArrow);
-
-            const zCone = new THREE.Mesh(coneGeom, new THREE.MeshBasicMaterial({ color: 0x4444ff }));
-            zCone.position.set(0, 0, 2.3 * maxSize);
-            zCone.rotation.x = Math.PI/2;
-            zCone.name = 'gizmo_z';
+            const zCone=new THREE.Mesh(coneGeom,new THREE.MeshBasicMaterial({color:0x4444ff}));
+            zCone.position.set(0,0,2.3*maxSize);
+            zCone.rotation.x=Math.PI/2;
+            zCone.name='gizmo_z';
             gizmo.add(zCone);
-
+            
             gizmo.position.copy(prop.position);
             scene.add(gizmo);
         }
-
-        // Remove gizmo
-        function removeGizmo() {
-            if (gizmo) {
+        
+        function removeGizmo(){
+            if(gizmo){
                 scene.remove(gizmo);
-                gizmo.traverse(obj => {
-                    if (obj.geometry) obj.geometry.dispose();
-                    if (obj.material) obj.material.dispose();
+                gizmo.traverse(obj=>{
+                    if(obj.geometry)obj.geometry.dispose();
+                    if(obj.material)obj.material.dispose();
                 });
-                gizmo = null;
-            }
-            draggingAxis = null;
-            dragStart = null;
-            propStartPos = null;
-        }
-
-        // Update gizmo position to follow selected prop
-        function updateGizmoPosition() {
-            if (gizmo && selectedObjects.length === 1) {
-                gizmo.position.copy(selectedObjects[0].position);
+                gizmo=null;
             }
         }
-
-        // Listen for selection changes and mode changes to show/hide gizmo
-        const _oldClearSelection = clearSelection;
-        clearSelection = function() {
-            _oldClearSelection();
+        
+        function updateGizmoPosition(){
+            if(gizmo&&selectedObjects.length===1)gizmo.position.copy(selectedObjects[0].position);
+        }
+        
+        function clearSelection(){
+            selectedObjects.forEach(obj=>highlightObject(obj,false));
+            selectedObjects=[];
             removeGizmo();
-        };
-        const _oldSetEditorMode = setEditorMode;
-        setEditorMode = function(mode) {
-            _oldSetEditorMode(mode);
-            if (mode === 'select') showGizmoForSelected();
-            else removeGizmo();
-        };
-        const _oldHandleSelection = handleSelection;
-        handleSelection = function(raycaster, addToSelection = false) {
-            _oldHandleSelection(raycaster, addToSelection);
-            showGizmoForSelected();
-        };
-
-        // Update gizmo position each frame
-        const _oldAnimate = animate;
-        animate = function(currentTime) {
-            if (gizmo && selectedObjects.length === 1) updateGizmoPosition();
-            _oldAnimate(currentTime);
-        };
-        
-        function clearSelection() {
-            selectedObjects.forEach(obj => highlightObject(obj, false));
-            selectedObjects = [];
         }
         
-        function deleteSelected() {
-            selectedObjects.forEach(obj => {
+        function deleteSelected(){
+            selectedObjects.forEach(obj=>{
                 scene.remove(obj);
-                const index = props.indexOf(obj);
-                if (index > -1) {
-                    props.splice(index, 1);
-                }
+                const index=props.indexOf(obj);
+                if(index>-1)props.splice(index,1);
                 obj.geometry.dispose();
                 obj.material.dispose();
             });
-            selectedObjects = [];
-            if (isOnline) saveMapToFirebase();
+            selectedObjects=[];
+            if(isOnline)saveMapToFirebase();
         }
         
-        function duplicateSelected() {
-            const newObjects = [];
-            selectedObjects.forEach(obj => {
-                const newProp = obj.clone();
-                newProp.material = obj.material.clone();
-                newProp.position.add(new THREE.Vector3(2, 0, 2));
-                newProp.castShadow = true;
-                newProp.receiveShadow = true;
+        function duplicateSelected(){
+            const newObjects=[];
+            selectedObjects.forEach(obj=>{
+                const newProp=obj.clone();
+                newProp.material=obj.material.clone();
+                newProp.position.add(new THREE.Vector3(2,0,2));
+                newProp.castShadow=true;
+                newProp.receiveShadow=true;
                 scene.add(newProp);
                 props.push(newProp);
                 newObjects.push(newProp);
             });
-            
             clearSelection();
-            selectedObjects = newObjects;
-            selectedObjects.forEach(obj => highlightObject(obj, true));
-            if (isOnline) saveMapToFirebase();
+            selectedObjects=newObjects;
+            selectedObjects.forEach(obj=>highlightObject(obj,true));
+            showGizmoForSelected();
+            if(isOnline)saveMapToFirebase();
         }
         
-        function rotateSelected(axis, degrees) {
-            const radians = (degrees * Math.PI) / 180;
-            selectedObjects.forEach(obj => {
-                switch(axis) {
-                    case 'x':
-                        obj.rotation.x += radians;
-                        break;
-                    case 'y':
-                        obj.rotation.y += radians;
-                        break;
-                    case 'z':
-                        obj.rotation.z += radians;
-                        break;
-                }
+        function rotateSelected(axis,degrees){
+            const radians=(degrees*Math.PI)/180;
+            selectedObjects.forEach(obj=>{
+                obj.rotation[axis]+=radians;
             });
-            if (isOnline) saveMapToFirebase();
+            if(isOnline)saveMapToFirebase();
         }
         
-        function addProp(position) {
-            const propType = document.getElementById('propType').value;
-            const scale = parseFloat(document.getElementById('propScale').value);
-            
+        function addProp(position){
+            const propType=document.getElementById('propType').value;
+            const scale=parseFloat(document.getElementById('propScale').value);
             let geometry;
-            switch (propType) {
-                case 'cube':
-                    geometry = new THREE.BoxGeometry(2, 2, 2);
-                    break;
-                case 'sphere':
-                    geometry = new THREE.SphereGeometry(1, 32, 32);
-                    break;
-                case 'cylinder':
-                    geometry = new THREE.CylinderGeometry(1, 1, 2, 32);
-                    break;
-                case 'ramp':
-                    geometry = new THREE.BoxGeometry(4, 1, 2);
-                    break;
-                case 'wall':
-                    geometry = new THREE.BoxGeometry(10, 5, 0.5);
-                    break;
-                case 'pillar':
-                    geometry = new THREE.CylinderGeometry(0.5, 0.5, 8, 16);
-                    break;
+            switch(propType){
+                case 'cube':geometry=new THREE.BoxGeometry(2,2,2);break;
+                case 'sphere':geometry=new THREE.SphereGeometry(1,32,32);break;
+                case 'cylinder':geometry=new THREE.CylinderGeometry(1,1,2,32);break;
+                case 'ramp':geometry=new THREE.BoxGeometry(4,1,2);break;
+                case 'wall':geometry=new THREE.BoxGeometry(10,5,.5);break;
+                case 'pillar':geometry=new THREE.CylinderGeometry(.5,.5,8,16);break;
             }
-            
-            const material = new THREE.MeshLambertMaterial({ color: currentColor });
-            const prop = new THREE.Mesh(geometry, material);
-            
+            const material=new THREE.MeshLambertMaterial({color:currentColor});
+            const prop=new THREE.Mesh(geometry,material);
             prop.position.copy(position);
-            prop.position.y += scale * (propType === 'sphere' ? 1 : 1);
+            prop.position.y+=scale*(propType==='sphere'?1:1);
             prop.scale.setScalar(scale);
-            prop.castShadow = true;
-            prop.receiveShadow = true;
-            prop.userData = { type: propType, originalColor: currentColor };
-            
+            prop.castShadow=true;
+            prop.receiveShadow=true;
+            prop.userData={type:propType,originalColor:currentColor};
             scene.add(prop);
             props.push(prop);
-            if (isOnline) saveMapToFirebase();
+            if(isOnline)saveMapToFirebase();
         }
         
-        function sculptTerrain(event) {
-            const raycaster = new THREE.Raycaster();
-            const mouse = new THREE.Vector2();
+        function sculptTerrain(event){
+            const raycaster=new THREE.Raycaster();
+            const mouse=new THREE.Vector2();
+            mouse.x=(event.clientX/window.innerWidth)*2-1;
+            mouse.y=-(event.clientY/window.innerHeight)*2+1;
+            raycaster.setFromCamera(mouse,camera);
+            const intersects=raycaster.intersectObject(terrain);
+            if(intersects.length===0)return;
             
-            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            const point=intersects[0].point;
+            const brushSize=parseInt(document.getElementById('brushSize').value);
+            const strength=parseFloat(document.getElementById('brushStrength').value);
+            const falloff=parseFloat(document.getElementById('brushFalloff').value);
+            const position=terrainGeometry.attributes.position;
+            const vertex=new THREE.Vector3();
             
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObject(terrain);
-            if (intersects.length === 0) return;
-            
-            const point = intersects[0].point;
-            const brushSize = parseInt(document.getElementById('brushSize').value);
-            const strength = parseFloat(document.getElementById('brushStrength').value);
-            const falloff = parseFloat(document.getElementById('brushFalloff').value);
-            
-            // Enhanced terrain sculpting with better falloff
-            const position = terrainGeometry.attributes.position;
-            const vertex = new THREE.Vector3();
-            
-            for (let i = 0; i < position.count; i++) {
-                vertex.fromBufferAttribute(position, i);
+            for(let i=0;i<position.count;i++){
+                vertex.fromBufferAttribute(position,i);
                 vertex.applyMatrix4(terrain.matrixWorld);
-                
-                const distance = vertex.distanceTo(point);
-                if (distance < brushSize) {
-                    const normalizedDistance = distance / brushSize;
-                    const influence = Math.pow(1 - normalizedDistance, falloff) * strength * 0.1;
-                    
-                    let newY = terrainVertices[i * 3 + 1];
-                    
-                    switch (terrainMode) {
-                        case 'raise':
-                            newY += influence;
-                            break;
-                        case 'lower':
-                            newY -= influence;
-                            break;
+                const distance=vertex.distanceTo(point);
+                if(distance<brushSize){
+                    const normalizedDistance=distance/brushSize;
+                    const influence=Math.pow(1-normalizedDistance,falloff)*strength*.1;
+                    let newY=terrainVertices[i*3+1];
+                    switch(terrainMode){
+                        case 'raise':newY+=influence;break;
+                        case 'lower':newY-=influence;break;
                         case 'smooth':
-                            // Better smoothing algorithm
-                            const targetHeight = getAverageHeightAround(i);
-                            newY += (targetHeight - newY) * influence * 0.5;
+                            const targetHeight=getAverageHeightAround(i);
+                            newY+=(targetHeight-newY)*influence*.5;
                             break;
                         case 'flatten':
-                            // Flatten to the clicked point height
-                            const targetY = point.y;
-                            newY += (targetY - newY) * influence;
+                            newY+=(point.y-newY)*influence;
                             break;
                     }
-                    
-                    terrainVertices[i * 3 + 1] = newY;
+                    terrainVertices[i*3+1]=newY;
                 }
             }
-            
-            terrainGeometry.attributes.position.needsUpdate = true;
+            terrainGeometry.attributes.position.needsUpdate=true;
             terrainGeometry.computeVertexNormals();
-            if (isOnline) saveMapToFirebase();
+            if(isOnline)saveMapToFirebase();
         }
         
-        function getAverageHeightAround(vertexIndex) {
-            const resolution = 64;
-            const row = Math.floor(vertexIndex / resolution);
-            const col = vertexIndex % resolution;
-            
-            let totalHeight = 0;
-            let count = 0;
-            
-            for (let r = Math.max(0, row - 1); r <= Math.min(resolution - 1, row + 1); r++) {
-                for (let c = Math.max(0, col - 1); c <= Math.min(resolution - 1, col + 1); c++) {
-                    const index = r * resolution + c;
-                    totalHeight += terrainVertices[index * 3 + 1];
+        function getAverageHeightAround(vertexIndex){
+            const resolution=64;
+            const row=Math.floor(vertexIndex/resolution);
+            const col=vertexIndex%resolution;
+            let totalHeight=0,count=0;
+            for(let r=Math.max(0,row-1);r<=Math.min(resolution-1,row+1);r++){
+                for(let c=Math.max(0,col-1);c<=Math.min(resolution-1,col+1);c++){
+                    const index=r*resolution+c;
+                    totalHeight+=terrainVertices[index*3+1];
                     count++;
                 }
             }
-            
-            return totalHeight / count;
+            return totalHeight/count;
         }
         
-        function clearStage() {
-            if (confirm('Are you sure you want to clear the entire stage?')) {
-                props.forEach(prop => {
+        function clearStage(){
+            if(confirm('Clear entire stage?')){
+                props.forEach(prop=>{
                     scene.remove(prop);
                     prop.geometry.dispose();
                     prop.material.dispose();
                 });
-                props = [];
-                selectedObjects = [];
+                props=[];
+                selectedObjects=[];
                 resetTerrain();
+                if(isOnline)saveMapToFirebase();
             }
-            if (isOnline) saveMapToFirebase();
         }
         
-        function resetTerrain() {
-            for (let i = 1; i < terrainVertices.length; i += 3) {
-                terrainVertices[i] = 0;
-            }
-            terrainGeometry.attributes.position.needsUpdate = true;
+        function resetTerrain(){
+            for(let i=1;i<terrainVertices.length;i+=3)terrainVertices[i]=0;
+            terrainGeometry.attributes.position.needsUpdate=true;
             terrainGeometry.computeVertexNormals();
-            if (isOnline) saveMapToFirebase();
+            if(isOnline)saveMapToFirebase();
         }
         
-        function saveStage() {
-            const stageData = {
-                terrain: Array.from(terrainVertices),
-                props: props.map(prop => ({
-                    position: prop.position.toArray(),
-                    rotation: prop.rotation.toArray(),
-                    scale: prop.scale.toArray(),
-                    color: prop.material.color.getHex(),
-                    type: prop.userData.type || 'cube'
-                }))
-            };
-            
-            const blob = new Blob([JSON.stringify(stageData, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `stage_${new Date().toISOString().slice(0, 10)}.json`;
+        function saveStage(){
+            const stageData=getStageData();
+            const blob=new Blob([JSON.stringify(stageData,null,2)],{type:'application/json'});
+            const url=URL.createObjectURL(blob);
+            const a=document.createElement('a');
+            a.href=url;
+            a.download=`stage_${new Date().toISOString().slice(0,10)}.json`;
             a.click();
             URL.revokeObjectURL(url);
-            if (isOnline) saveMapToFirebase();
         }
         
-        function loadStage() {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = '.json';
-            input.onchange = (e) => {
-                const file = e.target.files[0];
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    try {
-                        const stageData = JSON.parse(event.target.result);
-                        
-                        // Clear current stage
-                        clearSelection();
-                        props.forEach(prop => {
-                            scene.remove(prop);
-                            prop.geometry.dispose();
-                            prop.material.dispose();
-                        });
-                        props = [];
-                        
-                        // Load terrain
-                        if (stageData.terrain) {
-                            for (let i = 0; i < Math.min(terrainVertices.length, stageData.terrain.length); i++) {
-                                terrainVertices[i] = stageData.terrain[i];
-                            }
-                            terrainGeometry.attributes.position.needsUpdate = true;
-                            terrainGeometry.computeVertexNormals();
-                        }
-                        
-                        // Load props
-                        if (stageData.props) {
-                            stageData.props.forEach(propData => {
-                                let geometry;
-                                const type = propData.type || 'cube';
-                                
-                                switch (type) {
-                                    case 'cube':
-                                        geometry = new THREE.BoxGeometry(2, 2, 2);
-                                        break;
-                                    case 'sphere':
-                                        geometry = new THREE.SphereGeometry(1, 32, 32);
-                                        break;
-                                    case 'cylinder':
-                                        geometry = new THREE.CylinderGeometry(1, 1, 2, 32);
-                                        break;
-                                    case 'ramp':
-                                        geometry = new THREE.BoxGeometry(4, 1, 2);
-                                        break;
-                                    case 'wall':
-                                        geometry = new THREE.BoxGeometry(10, 5, 0.5);
-                                        break;
-                                    case 'pillar':
-                                        geometry = new THREE.CylinderGeometry(0.5, 0.5, 8, 16);
-                                        break;
-                                    default:
-                                        geometry = new THREE.BoxGeometry(2, 2, 2);
-                                }
-                                
-                                const material = new THREE.MeshLambertMaterial({ color: propData.color });
-                                const prop = new THREE.Mesh(geometry, material);
-                                
-                                prop.position.fromArray(propData.position);
-                                prop.rotation.fromArray(propData.rotation);
-                                prop.scale.fromArray(propData.scale);
-                                prop.castShadow = true;
-                                prop.receiveShadow = true;
-                                prop.userData = { type: type, originalColor: propData.color };
-                                
-                                scene.add(prop);
-                                props.push(prop);
-                            });
-                        }
-                        
-                        alert('Stage loaded successfully!');
-                    } catch (error) {
-                        alert('Error loading stage: ' + error.message);
+        function loadStage(){
+            const input=document.createElement('input');
+            input.type='file';
+            input.accept='.json';
+            input.onchange=e=>{
+                const file=e.target.files[0];
+                const reader=new FileReader();
+                reader.onload=event=>{
+                    try{
+                        const stageData=JSON.parse(event.target.result);
+                        loadStageData(stageData);
+                        alert('Stage loaded!');
+                        if(isOnline)saveMapToFirebase();
+                    }catch(error){
+                        alert('Error loading stage: '+error.message);
                     }
                 };
                 reader.readAsText(file);
             };
             input.click();
-            if (isOnline) saveMapToFirebase();
-        }
-
-        function saveMapToFirebase() {
-            if (!database || !currentRoom) return;
-            const stageData = {
-                terrain: Array.from(terrainVertices),
-                props: props.map(prop => ({
-                    position: prop.position.toArray(),
-                    rotation: prop.rotation.toArray(),
-                    scale: prop.scale.toArray(),
-                    color: prop.material.color.getHex(),
-                    type: prop.userData.type || 'cube'
-                }))
-            };
-            database.ref(`rooms/${currentRoom}/map`).set(stageData);
         }
         
-        function shoot() {
-            const now = Date.now();
-            const weapon = player.weapons[player.currentWeapon];
+        function getStageData(){
+            return {
+                terrain:Array.from(terrainVertices),
+                props:props.map(prop=>({
+                    position:prop.position.toArray(),
+                    rotation:prop.rotation.toArray(),
+                    scale:prop.scale.toArray(),
+                    color:prop.material.color.getHex(),
+                    type:prop.userData.type||'cube'
+                }))
+            };
+        }
+        
+        function loadStageData(stageData){
+            clearSelection();
+            props.forEach(prop=>{
+                scene.remove(prop);
+                prop.geometry.dispose();
+                prop.material.dispose();
+            });
+            props=[];
             
-            if (now - lastShot < weapon.fireRate || weapon.currentAmmo <= 0) return;
+            if(stageData.terrain){
+                for(let i=0;i<Math.min(terrainVertices.length,stageData.terrain.length);i++){
+                    terrainVertices[i]=stageData.terrain[i];
+                }
+                terrainGeometry.attributes.position.needsUpdate=true;
+                terrainGeometry.computeVertexNormals();
+            }
             
-            lastShot = now;
+            if(stageData.props){
+                stageData.props.forEach(propData=>{
+                    let geometry;
+                    const type=propData.type||'cube';
+                    switch(type){
+                        case 'cube':geometry=new THREE.BoxGeometry(2,2,2);break;
+                        case 'sphere':geometry=new THREE.SphereGeometry(1,32,32);break;
+                        case 'cylinder':geometry=new THREE.CylinderGeometry(1,1,2,32);break;
+                        case 'ramp':geometry=new THREE.BoxGeometry(4,1,2);break;
+                        case 'wall':geometry=new THREE.BoxGeometry(10,5,.5);break;
+                        case 'pillar':geometry=new THREE.CylinderGeometry(.5,.5,8,16);break;
+                        default:geometry=new THREE.BoxGeometry(2,2,2);
+                    }
+                    const material=new THREE.MeshLambertMaterial({color:propData.color});
+                    const prop=new THREE.Mesh(geometry,material);
+                    prop.position.fromArray(propData.position);
+                    prop.rotation.fromArray(propData.rotation);
+                    prop.scale.fromArray(propData.scale);
+                    prop.castShadow=true;
+                    prop.receiveShadow=true;
+                    prop.userData={type:type,originalColor:propData.color};
+                    scene.add(prop);
+                    props.push(prop);
+                });
+            }
+        }
+        
+        function saveMapToFirebase(){
+            if(!database||!currentRoom)return;
+            database.ref(`rooms/${currentRoom}/map`).set(getStageData());
+        }
+        
+        function shoot(){
+            const now=Date.now();
+            const weapon=player.weapons[player.currentWeapon];
+            if(now-lastShot<weapon.fireRate||weapon.currentAmmo<=0)return;
+            lastShot=now;
             weapon.currentAmmo--;
             updateWeaponDisplay();
             
-            const pellets = weapon.pellets || 1;
-            for (let i = 0; i < pellets; i++) {
+            const pellets=weapon.pellets||1;
+            for(let i=0;i<pellets;i++){
                 createBullet(weapon);
             }
         }
         
-        function createBullet(weapon) {
-            const bulletGeometry = new THREE.SphereGeometry(0.05, 8, 8);
-            const bulletMaterial = new THREE.MeshBasicMaterial({ color: weapon.color });
-            const bullet = new THREE.Mesh(bulletGeometry, bulletMaterial);
-            
+        function createBullet(weapon){
+            const bullet=new THREE.Mesh(
+                new THREE.SphereGeometry(.05,8,8),
+                new THREE.MeshBasicMaterial({color:weapon.color})
+            );
             bullet.position.copy(camera.position);
-            
-            const direction = new THREE.Vector3(0, 0, -1);
+            const direction=new THREE.Vector3(0,0,-1);
             direction.applyQuaternion(camera.quaternion);
-            
-            direction.x += (Math.random() - 0.5) * weapon.spread;
-            direction.y += (Math.random() - 0.5) * weapon.spread;
+            direction.x+=(Math.random()-.5)*weapon.spread;
+            direction.y+=(Math.random()-.5)*weapon.spread;
             direction.normalize();
+            bullet.velocity=direction.multiplyScalar(20);
+            bullet.damage=weapon.damage;
+            bullet.range=weapon.range;
+            bullet.distance=0;
+            bullet.playerId=playerId;
+            scene.add(bullet);
+            bullets.push(bullet);
             
-            bullet.velocity = direction.multiplyScalar(20);
-            bullet.damage = weapon.damage;
-            bullet.range = weapon.range;
-            bullet.distance = 0;
-            
+            // Sync bullet to Firebase
+            if(isOnline&&database){
+                const bulletId='bullet_'+Date.now()+'_'+Math.random().toString(36).substr(2,5);
+                const bulletData={
+                    playerId,
+                    position:bullet.position.toArray(),
+                    velocity:bullet.velocity.toArray(),
+                    damage:weapon.damage,
+                    range:weapon.range,
+                    color:weapon.color,
+                    timestamp:firebase.database.ServerValue.TIMESTAMP
+                };
+                database.ref(`rooms/${currentRoom}/bullets/${bulletId}`).set(bulletData);
+                // Auto-cleanup after 5 seconds
+                setTimeout(()=>{
+                    database.ref(`rooms/${currentRoom}/bullets/${bulletId}`).remove();
+                },5000);
+            }
+        }
+        
+        function createRemoteBullet(bulletData){
+            const bullet=new THREE.Mesh(
+                new THREE.SphereGeometry(.05,8,8),
+                new THREE.MeshBasicMaterial({color:bulletData.color})
+            );
+            bullet.position.fromArray(bulletData.position);
+            bullet.velocity=new THREE.Vector3().fromArray(bulletData.velocity);
+            bullet.damage=bulletData.damage;
+            bullet.range=bulletData.range;
+            bullet.distance=0;
+            bullet.playerId=bulletData.playerId;
+            bullet.isRemote=true;
             scene.add(bullet);
             bullets.push(bullet);
         }
         
-        function reload() {
-            const weapon = player.weapons[player.currentWeapon];
-            const reserveAmmo = weapon.maxAmmo - weapon.currentAmmo;
-            const magCapacity = weapon.ammo;
-            const currentAmmo = weapon.currentAmmo;
-            
-            if (reserveAmmo > 0 && currentAmmo < magCapacity) {
-                const ammoNeeded = magCapacity - currentAmmo;
-                const ammoToReload = Math.min(ammoNeeded, reserveAmmo);
-                
-                weapon.currentAmmo += ammoToReload;
+        function reload(){
+            const weapon=player.weapons[player.currentWeapon];
+            const reserveAmmo=weapon.maxAmmo-weapon.currentAmmo;
+            const magCapacity=weapon.ammo;
+            if(reserveAmmo>0&&weapon.currentAmmo<magCapacity){
+                const ammoNeeded=magCapacity-weapon.currentAmmo;
+                const ammoToReload=Math.min(ammoNeeded,reserveAmmo);
+                weapon.currentAmmo+=ammoToReload;
                 updateWeaponDisplay();
             }
         }
         
-        function spawnEnemies() {
-            enemies.forEach(enemy => scene.remove(enemy.mesh));
-            enemies = [];
-            
-            for (let i = 0; i < 5; i++) {
-                const enemyGeometry = new THREE.BoxGeometry(1, 2, 1);
-                const enemyMaterial = new THREE.MeshLambertMaterial({ color: 0xff4444 });
-                const enemyMesh = new THREE.Mesh(enemyGeometry, enemyMaterial);
-                
-                enemyMesh.position.set(
-                    (Math.random() - 0.5) * 80,
-                    2,
-                    (Math.random() - 0.5) * 80
+        function spawnEnemies(){
+            enemies.forEach(enemy=>scene.remove(enemy.mesh));
+            enemies=[];
+            for(let i=0;i<5;i++){
+                const enemyMesh=new THREE.Mesh(
+                    new THREE.BoxGeometry(1,2,1),
+                    new THREE.MeshLambertMaterial({color:0xff4444})
                 );
-                enemyMesh.castShadow = true;
-                
-                const enemy = {
-                    mesh: enemyMesh,
-                    health: 100,
-                    speed: 0.5,
-                    lastShot: 0,
-                    target: player.position
-                };
-                
+                enemyMesh.position.set((Math.random()-.5)*80,2,(Math.random()-.5)*80);
+                enemyMesh.castShadow=true;
+                const enemy={mesh:enemyMesh,health:100,speed:.5,lastShot:0,target:player.position};
                 scene.add(enemyMesh);
                 enemies.push(enemy);
             }
         }
         
-        function updateGame(deltaTime) {
-            if (gameMode === 'editor') {
-                return;
-            }
-            
-            if (gameMode !== 'game') return;
-            
+        function updateGame(deltaTime){
+            if(gameMode!=='game')return;
             updatePlayer(deltaTime);
             updateBullets(deltaTime);
             updateEnemies(deltaTime);
+            updateRemotePlayers();
             
-            // Update camera
             camera.position.copy(player.position);
-            camera.rotation.order = 'YXZ';
-            camera.rotation.set(mouseY, mouseX, 0);
+            camera.rotation.order='YXZ';
+            camera.rotation.set(mouseY,mouseX,0);
+            document.getElementById('healthValue').textContent=player.health;
             
-            // Update HUD
-            document.getElementById('healthValue').textContent = player.health;
+            if(isMouseDown&&isPointerLocked&&player.weapons[player.currentWeapon].automatic)shoot();
             
-            // Automatic shooting for automatic weapons
-            if (isMouseDown && isPointerLocked) {
-                const weapon = player.weapons[player.currentWeapon];
-                if (weapon.automatic) {
-                    shoot();
-                }
-            }
-
-            if (isOnline && playerId && database && currentRoom) {
+            // Sync player position to Firebase
+            if(isOnline&&playerId&&database&&currentRoom){
                 database.ref(`rooms/${currentRoom}/players/${playerId}`).update({
-                    position: { x: player.position.x, y: player.position.y, z: player.position.z },
-                    health: player.health
+                    position:{x:player.position.x,y:player.position.y,z:player.position.z},
+                    health:player.health
                 });
             }
         }
         
-        function updatePlayer(deltaTime) {
-            const moveSpeed = 1200;
-            const jumpSpeed = 8.5;
+        function updatePlayer(deltaTime){
+            const moveSpeed=1200,jumpSpeed=8.5;
+            const direction=new THREE.Vector3();
+            if(keys['KeyW'])direction.z-=1;
+            if(keys['KeyS'])direction.z+=1;
+            if(keys['KeyA'])direction.x-=1;
+            if(keys['KeyD'])direction.x+=1;
             
-            // Movement
-            const direction = new THREE.Vector3();
-            if (keys['KeyW']) direction.z -= 1;
-            if (keys['KeyS']) direction.z += 1;
-            if (keys['KeyA']) direction.x -= 1;
-            if (keys['KeyD']) direction.x += 1;
-            
-            if (direction.length() > 0) {
+            if(direction.length()>0){
                 direction.normalize();
-                direction.multiplyScalar(moveSpeed * deltaTime);
-                
-                const rotationMatrix = new THREE.Matrix4();
+                direction.multiplyScalar(moveSpeed*deltaTime);
+                const rotationMatrix=new THREE.Matrix4();
                 rotationMatrix.makeRotationY(mouseX);
                 direction.applyMatrix4(rotationMatrix);
-                
-                player.velocity.x = direction.x;
-                player.velocity.z = direction.z;
-            } else {
-                player.velocity.x = 0;
-                player.velocity.z = 0;
+                player.velocity.x=direction.x;
+                player.velocity.z=direction.z;
+            }else{
+                player.velocity.x=0;
+                player.velocity.z=0;
             }
             
-            // Jumping
-            if (keys['Space'] && player.onGround) {
-                player.velocity.y = jumpSpeed;
-                player.onGround = false;
+            if(keys['Space']&&player.onGround){
+                player.velocity.y=jumpSpeed;
+                player.onGround=false;
             }
             
-            // Gravity
-            player.velocity.y -= 25 * deltaTime;
-            
-            // Apply velocity
+            player.velocity.y-=25*deltaTime;
             player.position.add(player.velocity.clone().multiplyScalar(deltaTime));
             
-            // Terrain mesh collision (raycast down from player)
-            const raycaster = new THREE.Raycaster(
-                new THREE.Vector3(player.position.x, player.position.y + 1, player.position.z),
-                new THREE.Vector3(0, -1, 0)
-            );
-            const intersects = raycaster.intersectObject(terrain);
-            if (intersects.length > 0) {
-                const terrainY = intersects[0].point.y;
-                if (player.position.y <= terrainY + 1) {
-                    player.position.y = terrainY + 1;
-                    player.velocity.y = 0;
-                    player.onGround = true;
+            const raycaster=new THREE.Raycaster(new THREE.Vector3(player.position.x,player.position.y+1,player.position.z),new THREE.Vector3(0,-1,0));
+            const intersects=raycaster.intersectObject(terrain);
+            if(intersects.length>0){
+                const terrainY=intersects[0].point.y;
+                if(player.position.y<=terrainY+1){
+                    player.position.y=terrainY+1;
+                    player.velocity.y=0;
+                    player.onGround=true;
                 }
             }
-            
             checkPropCollisions();
         }
-                
-        function checkPropCollisions() {
-            const playerBox = new THREE.Box3(
-                new THREE.Vector3(player.position.x - 0.5, player.position.y - 1, player.position.z - 0.5),
-                new THREE.Vector3(player.position.x + 0.5, player.position.y + 1, player.position.z + 0.5)
+        
+        function checkPropCollisions(){
+            const playerBox=new THREE.Box3(
+                new THREE.Vector3(player.position.x-.5,player.position.y-1,player.position.z-.5),
+                new THREE.Vector3(player.position.x+.5,player.position.y+1,player.position.z+.5)
             );
-
-            let grounded = false;
-
-            props.forEach(prop => {
-                const propBox = new THREE.Box3().setFromObject(prop);
-                if (playerBox.intersectsBox(propBox)) {
-                    // Calculate overlap on each axis
-                    const overlapX = Math.min(playerBox.max.x - propBox.min.x, propBox.max.x - playerBox.min.x);
-                    const overlapY = Math.min(playerBox.max.y - propBox.min.y, propBox.max.y - playerBox.min.y);
-                    const overlapZ = Math.min(playerBox.max.z - propBox.min.z, propBox.max.z - playerBox.min.z);
-
-                    // Find axis of minimum overlap (least penetration)
-                    const minOverlap = Math.min(overlapX, overlapY, overlapZ);
-
-                    if (minOverlap === overlapX) {
-                        if (player.position.x < propBox.getCenter(new THREE.Vector3()).x) {
-                            player.position.x -= overlapX + 0.001;
-                        } else {
-                            player.position.x += overlapX + 0.001;
-                        }
-                    } else if (minOverlap === overlapY) {
-                        // Move player out along Y
-                        if (player.position.y < propBox.getCenter(new THREE.Vector3()).y) {
-                            player.position.y -= overlapY + 0.001;
-                        } else {
-                            player.position.y += overlapY + 0.001;
-                            grounded = true; // Player is standing on top of prop
-                        }
-                        player.velocity.y = 0;
-                    } else {
-                        if (player.position.z < propBox.getCenter(new THREE.Vector3()).z) {
-                            player.position.z -= overlapZ + 0.001;
-                        } else {
-                            player.position.z += overlapZ + 0.001;
-                        }
+            let grounded=false;
+            props.forEach(prop=>{
+                const propBox=new THREE.Box3().setFromObject(prop);
+                if(playerBox.intersectsBox(propBox)){
+                    const overlapX=Math.min(playerBox.max.x-propBox.min.x,propBox.max.x-playerBox.min.x);
+                    const overlapY=Math.min(playerBox.max.y-propBox.min.y,propBox.max.y-playerBox.min.y);
+                    const overlapZ=Math.min(playerBox.max.z-propBox.min.z,propBox.max.z-playerBox.min.z);
+                    const minOverlap=Math.min(overlapX,overlapY,overlapZ);
+                    const center=propBox.getCenter(new THREE.Vector3());
+                    
+                    if(minOverlap===overlapX){
+                        player.position.x+=player.position.x<center.x?-overlapX-.001:overlapX+.001;
+                    }else if(minOverlap===overlapY){
+                        player.position.y+=player.position.y<center.y?-overlapY-.001:overlapY+.001;
+                        if(player.position.y>center.y)grounded=true;
+                        player.velocity.y=0;
+                    }else{
+                        player.position.z+=player.position.z<center.z?-overlapZ-.001:overlapZ+.001;
                     }
                 }
             });
-
-            // Set player.onGround if standing on any prop
-            if (grounded) {
-                player.onGround = true;
-            }
+            if(grounded)player.onGround=true;
         }
-
-        let remotePlayerMeshes = {}; // id -> mesh
-
-        function updateRemotePlayers() {
-            // Remove meshes for players who left
-            Object.keys(remotePlayerMeshes).forEach(id => {
-                if (!otherPlayers[id]) {
+        
+        function updateRemotePlayers(){
+            Object.keys(remotePlayerMeshes).forEach(id=>{
+                if(!otherPlayers[id]){
                     scene.remove(remotePlayerMeshes[id]);
                     remotePlayerMeshes[id].geometry.dispose();
                     remotePlayerMeshes[id].material.dispose();
                     delete remotePlayerMeshes[id];
                 }
             });
-
-            // Add/update meshes for current players
-            Object.keys(otherPlayers).forEach(id => {
-                const data = otherPlayers[id];
-                let mesh = remotePlayerMeshes[id];
-                if (!mesh) {
-                    // Create a simple capsule or box for remote player
-                    const geometry = new THREE.CylinderGeometry(0.5, 0.5, 2, 16);
-                    const material = new THREE.MeshLambertMaterial({ color: 0x00ccff });
-                    mesh = new THREE.Mesh(geometry, material);
-                    mesh.castShadow = true;
-                    mesh.receiveShadow = true;
+            
+            Object.keys(otherPlayers).forEach(id=>{
+                const data=otherPlayers[id];
+                let mesh=remotePlayerMeshes[id];
+                if(!mesh){
+                    const geometry=new THREE.CylinderGeometry(.5,.5,2,16);
+                    const material=new THREE.MeshLambertMaterial({color:data.color||'#00ccff'});
+                    mesh=new THREE.Mesh(geometry,material);
+                    mesh.castShadow=true;
+                    mesh.receiveShadow=true;
                     scene.add(mesh);
-                    remotePlayerMeshes[id] = mesh;
+                    remotePlayerMeshes[id]=mesh;
                 }
-                // Update position
-                if (data.position) {
-                    mesh.position.set(data.position.x, data.position.y, data.position.z);
-                }
+                if(data.position)mesh.position.set(data.position.x,data.position.y,data.position.z);
             });
         }
-
-        function updateBullets(deltaTime) {
-            for (let i = bullets.length - 1; i >= 0; i--) {
-                const bullet = bullets[i];
-                
+        
+        function updateBullets(deltaTime){
+            for(let i=bullets.length-1;i>=0;i--){
+                const bullet=bullets[i];
                 bullet.position.add(bullet.velocity.clone().multiplyScalar(deltaTime));
-                bullet.distance += bullet.velocity.length() * deltaTime;
+                bullet.distance+=bullet.velocity.length()*deltaTime;
                 
-                if (bullet.distance > bullet.range) {
+                if(bullet.distance>bullet.range){
                     scene.remove(bullet);
-                    bullets.splice(i, 1);
+                    bullets.splice(i,1);
                     continue;
                 }
                 
-                let hit = false;
-                props.forEach(prop => {
-                    const propBox = new THREE.Box3().setFromObject(prop);
-                    if (propBox.containsPoint(bullet.position)) {
-                        hit = true;
+                let hit=false;
+                
+                // Check prop collisions
+                props.forEach(prop=>{
+                    const propBox=new THREE.Box3().setFromObject(prop);
+                    if(propBox.containsPoint(bullet.position)){
+                        hit=true;
                     }
                 });
                 
-                if (hit) {
-                    scene.remove(bullet);
-                    bullets.splice(i, 1);
-                    continue;
-                }
-                
-                enemies.forEach(enemy => {
-                    const enemyBox = new THREE.Box3().setFromObject(enemy.mesh);
-                    if (enemyBox.containsPoint(bullet.position)) {
-                        enemy.health -= bullet.damage;
-                        scene.remove(bullet);
-                        bullets.splice(i, 1);
-                        
-                        if (enemy.health <= 0) {
+                // Check enemy collisions
+                enemies.forEach(enemy=>{
+                    const enemyBox=new THREE.Box3().setFromObject(enemy.mesh);
+                    if(enemyBox.containsPoint(bullet.position)){
+                        enemy.health-=bullet.damage;
+                        hit=true;
+                        if(enemy.health<=0){
                             scene.remove(enemy.mesh);
-                            enemies.splice(enemies.indexOf(enemy), 1);
+                            enemies.splice(enemies.indexOf(enemy),1);
                         }
-                        hit = true;
                     }
                 });
                 
-                if (hit) continue;
+                // Check player collisions (multiplayer damage)
+                if(isOnline&&bullet.playerId!==playerId){
+                    const playerBox=new THREE.Box3(
+                        new THREE.Vector3(player.position.x-.5,player.position.y-1,player.position.z-.5),
+                        new THREE.Vector3(player.position.x+.5,player.position.y+1,player.position.z+.5)
+                    );
+                    if(playerBox.containsPoint(bullet.position)){
+                        player.health=Math.max(0,player.health-bullet.damage);
+                        hit=true;
+                        // Sync health update
+                        database.ref(`rooms/${currentRoom}/players/${playerId}`).update({health:player.health});
+                    }
+                }
+                
+                // Check remote player collisions
+                Object.keys(remotePlayerMeshes).forEach(remoteId=>{
+                    if(bullet.playerId===playerId){
+                        const remoteMesh=remotePlayerMeshes[remoteId];
+                        const remoteBox=new THREE.Box3().setFromObject(remoteMesh);
+                        if(remoteBox.containsPoint(bullet.position)){
+                            // Damage remote player
+                            const currentHealth=otherPlayers[remoteId].health||100;
+                            const newHealth=Math.max(0,currentHealth-bullet.damage);
+                            database.ref(`rooms/${currentRoom}/players/${remoteId}`).update({health:newHealth});
+                            hit=true;
+                        }
+                    }
+                });
+                
+                if(hit){
+                    scene.remove(bullet);
+                    bullets.splice(i,1);
+                }
             }
         }
         
-        function updateEnemies(deltaTime) {
-            enemies.forEach(enemy => {
-                const direction = player.position.clone().sub(enemy.mesh.position);
-                direction.y = 0;
+        function updateEnemies(deltaTime){
+            enemies.forEach(enemy=>{
+                const direction=player.position.clone().sub(enemy.mesh.position);
+                direction.y=0;
                 direction.normalize();
+                enemy.mesh.position.add(direction.multiplyScalar(enemy.speed*deltaTime));
+                enemy.mesh.position.y=3;
                 
-                enemy.mesh.position.add(direction.multiplyScalar(enemy.speed * deltaTime));
-                
-                enemy.mesh.position.y = 3;
-                
-                const distance = enemy.mesh.position.distanceTo(player.position);
-                if (distance < 20 && Date.now() - enemy.lastShot > 2000) {
-                    enemy.lastShot = Date.now();
-                    
-                    const bulletGeometry = new THREE.SphereGeometry(0.05, 8, 8);
-                    const bulletMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-                    const bullet = new THREE.Mesh(bulletGeometry, bulletMaterial);
-                    
+                const distance=enemy.mesh.position.distanceTo(player.position);
+                if(distance<20&&Date.now()-enemy.lastShot>2000){
+                    enemy.lastShot=Date.now();
+                    const bullet=new THREE.Mesh(
+                        new THREE.SphereGeometry(.05,8,8),
+                        new THREE.MeshBasicMaterial({color:0xff0000})
+                    );
                     bullet.position.copy(enemy.mesh.position);
-                    bullet.velocity = direction.multiplyScalar(15);
-                    bullet.damage = 20;
-                    bullet.range = 50;
-                    bullet.distance = 0;
-                    bullet.isEnemyBullet = true;
-                    
+                    bullet.velocity=direction.multiplyScalar(15);
+                    bullet.damage=20;
+                    bullet.range=50;
+                    bullet.distance=0;
+                    bullet.isEnemyBullet=true;
                     scene.add(bullet);
                     bullets.push(bullet);
                 }
                 
-                if (distance < 2) {
-                    player.health -= 10 * deltaTime;
-                    if (player.health <= 0) {
-                        player.health = 0;
-                    }
+                if(distance<2){
+                    player.health-=10*deltaTime;
+                    if(player.health<=0)player.health=0;
                 }
             });
         }
         
-        // Animation loop
-        let lastTime = 0;
-        function animate(currentTime) {
+        let lastTime=0;
+        function animate(currentTime){
             requestAnimationFrame(animate);
-
-            const deltaTime = (currentTime - lastTime) / 1000;
-            lastTime = currentTime;
-
+            const deltaTime=(currentTime-lastTime)/1000;
+            lastTime=currentTime;
             updateGame(deltaTime);
-
-            // Update remote players if online
-            if (isOnline) updateRemotePlayers();
-
-            renderer.render(scene, camera);
+            if(gizmo&&selectedObjects.length===1)updateGizmoPosition();
+            renderer.render(scene,camera);
         }
         
-        // Initialize when page loads
-        window.addEventListener('load', () => {
+        window.addEventListener('load',()=>{
             initFirebase();
             init();
         });
